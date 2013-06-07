@@ -13,6 +13,7 @@
 #
 PROG=`basename $0`
 
+
 function usage() {
     echo "usage: $PROG $@" >&2
     exit 1
@@ -36,12 +37,17 @@ function cf_auth() {
              --header "X-Auth-User: $CF_USER" \
              ${CF_AUTH_URL})
 
-    CF_AUTH_TOKEN=`echo "$auth_resp" | grep ^X-Auth-Token | sed 's/.*: //' | tr -d "\r\n"`
-    CF_MGMT_URL=`echo "$auth_resp" | grep ^X-Storage-Url | sed 's/.*: //' | tr -d "\r\n"`
+    CF_AUTH_TOKEN=$(echo "$auth_resp" | grep ^X-Auth-Token \
+                                      | sed 's/.*: //' \
+                                      | tr -d "\r\n")
+
+    CF_MGMT_URL=$(echo "$auth_resp" | grep ^X-Storage-Url \
+                                    | sed 's/.*: //' \
+                                    | tr -d "\r\n")
 
     if [ -z $CF_AUTH_TOKEN ] || [ -z $CF_MGMT_URL ]; then
-        echo Unable to authenticate, set credentials in ~/.bashrc or \
-             CF_USER and CF_API_KEY environment variables
+        echo "Unable to authenticate, set credentials in ~/.bashrc or" \
+             " CF_USER and CF_API_KEY environment variables"
         exit 1
     fi
 }
