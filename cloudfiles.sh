@@ -12,6 +12,7 @@
 #       * Lowercase command names (easier to type)
 #
 PROG=`basename $0`
+CONFIG=~/.$PROG
 
 DEFAULT_CF_AUTH_URL=https://auth.api.rackspacecloud.com/v1.0
 
@@ -19,9 +20,19 @@ OPT_SILENT=0
 OPT_CONTENT_TYPE=
 
 
-function cf_usage() {
-    echo "usage: $PROG [-s|-t] $@" >&2
+function cf_warn() {
+    echo "warning: $@" >&2
+}
+
+
+function cf_die() {
+    echo "$@" >&2
     exit 1
+}
+
+
+function cf_usage() {
+    cf_die "usage: $PROG [-s|-t] $@"
 }
 
 
@@ -31,9 +42,82 @@ function cf_general_usage() {
 
 
 function cf_load_config() {
-    local config=~/.$PROG
-    if [[ -r $config ]]; then
-        source $config
+    if [[ -r $CONFIG ]]; then
+        source $CONFIG
+    fi
+}
+
+
+function cf_ask() {
+    local question=$1
+
+    read -p "$question"
+    echo $REPLY
+}
+
+
+function cf_ask_required() {
+    local var=$1
+    local question=$2
+    local reply=`cf_ask "$question"`
+    if [[ -z $reply ]]; then
+        cf_die 'Aborted'
+    fi
+    eval $var="'$reply'"
+}
+
+
+function cf_ask_with_default() {
+    local default=$1
+    local question=$2
+
+    local reply=`cf_ask "$question"`
+
+    if [[ -z $reply ]]; then
+        reply=$default
+    fi
+
+    echo "$reply"
+}
+
+
+function cf_save_config() {
+    if [[ -e $CONFIG ]]; then
+        cf_warn "Cannot save credentials, file $CONFIG already exists"
+        return
+    fi
+    cat > $CONFIG <<EOF
+CF_USER=$CF_USER
+CF_API_KEY=$CF_API_KEY
+EOF
+}
+
+
+function cf_retrieve_credentials() {
+    local creds_updated=0
+
+    # 1. Check config file
+    # 2. Check environment
+    # 3. Ask user
+    # 4. Optional: Save credentials to config file
+    cf_load_config
+
+    if [[ -z $CF_USER ]]; then
+        cf_ask_required 'CF_USER' 'CloudFiles Username: '
+        creds_updated=1
+    fi
+
+    if [[ -z $CF_API_KEY ]]; then
+        cf_ask_required 'CF_API_KEY' 'CloudFiles API Key: '
+        creds_updated=1
+    fi
+
+    if [[ $creds_updated -eq 1 ]]; then
+        local save_creds=`cf_ask_with_default N 'Save Credentials [y/N]? '`
+
+        if [[ $save_creds = 'y' || $save_creds = 'Y' ]]; then
+            cf_save_config
+        fi
     fi
 }
 
@@ -69,7 +153,7 @@ function cf_auth() {
                                     | tr -d "\r\n")
 
     if [[ -z $CF_AUTH_TOKEN || -z $CF_MGMT_URL ]]; then
-        echo "Unable to authenticate, set credentials in ~/.bashrc or" \
+        echo "Unable to authenticate, set credentials in $CONFIG or" \
              " CF_USER and CF_API_KEY environment variables"
         exit 1
     fi
@@ -199,7 +283,14 @@ function cf_stat() {
 }
 
 
-cf_load_config
+#############################################################################
+#                                                                           #
+#                                    Main                                   #
+#                                                                           #
+#############################################################################
+
+
+cf_retrieve_credentials
 cf_auth
 
 while getopts 'st:' opt; do

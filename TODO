@@ -1,9 +1,8 @@
+- Ability to set US vs UK endpoint
+
 - -h  helptext
 
 - -v version
-
-- Interactive mode to query for username and API key w/ option to save that to
-  ~/.cloudfiles.sh
 
 - Large-file upload support
 
@@ -11,3 +10,5 @@
     - Command completion
     - Container name completion
     - Object-name completion
+
+- Add CHANGELOG
