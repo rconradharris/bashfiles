@@ -13,10 +13,11 @@
 #
 PROG=`basename $0`
 DEFAULT_CF_AUTH_URL=https://auth.api.rackspacecloud.com/v1.0
+OPT_SILENT=0
 
 
 function usage() {
-    echo "usage: $PROG $@" >&2
+    echo "usage: $PROG [-s] $@" >&2
     exit 1
 }
 
@@ -62,7 +63,13 @@ function cf_auth() {
 
 
 function cf_curl() {
-    local code=$(curl --silent --fail --write-out '%{http_code}' \
+    local opt_silent=
+
+    if [[ $OPT_SILENT -ne 0 ]]; then
+        local opt_silent=--silent
+    fi
+
+    local code=$(curl $opt_silent --fail --write-out '%{http_code}' \
                       --header "X-Auth-Token: $CF_AUTH_TOKEN" "$@")
 
     if [ $code -lt 200 ] || [ $code -gt 299 ]; then
@@ -75,6 +82,8 @@ function cf_curl() {
 function cf_ls() {
     local container=$1
     local tmp_file=`cf_mktemp`
+
+    OPT_SILENT=1
 
     cf_curl --output $tmp_file $CF_MGMT_URL/$container
 
@@ -103,6 +112,8 @@ function cf_mkdir() {
         usage 'mkdir <container>'
     fi
 
+    OPT_SILENT=1
+
     cf_curl --request PUT --upload-file /dev/null $CF_MGMT_URL/$container
 }
 
@@ -117,6 +128,7 @@ function cf_put() {
 
     local obj_name=`basename $filename`
     local content_type='application/octet-stream'
+
     cf_curl --request PUT --header "Content-Type: $content_type" \
             --upload-file $filename $CF_MGMT_URL/$container/$obj_name
 }
@@ -130,6 +142,8 @@ function cf_rm() {
         usage 'rm <container> <object-name>'
     fi
 
+    OPT_SILENT=1
+
     cf_curl --request DELETE $CF_MGMT_URL/$container/$obj_name
 }
 
@@ -141,6 +155,8 @@ function cf_rmdir() {
         usage 'rmdir <container>'
     fi
 
+    OPT_SILENT=1
+
     cf_curl --request DELETE $CF_MGMT_URL/$container
 }
 
@@ -150,6 +166,8 @@ function cf_stat() {
     local obj_name=$2
 
     local tmp_file=`cf_mktemp`
+
+    OPT_SILENT=1
 
     # NOTE: if we used --request HEAD instead of --head, curl would expect
     # Content-Length bytes to be sent as entity body which would cause a
@@ -164,6 +182,19 @@ function cf_stat() {
 
 load_config
 cf_auth
+
+while getopts 's' opt; do
+  case $opt in
+    s)
+      OPT_SILENT=1
+    ;;
+    *)
+      usage
+    ;;
+  esac
+done
+
+shift $(($OPTIND - 1))
 
 case $1 in
     ls)
