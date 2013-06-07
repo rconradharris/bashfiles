@@ -1,6 +1,4 @@
-- Autodetect Content-Type
-    - `file` command
-    - extension
+- All functions should start with cf_
 
 - -h  helptext
 

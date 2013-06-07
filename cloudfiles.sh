@@ -14,7 +14,6 @@
 PROG=`basename $0`
 
 DEFAULT_CF_AUTH_URL=https://auth.api.rackspacecloud.com/v1.0
-DEFAULT_CONTENT_TYPE=application/octet-stream
 
 OPT_SILENT=0
 OPT_CONTENT_TYPE=
@@ -41,6 +40,12 @@ function load_config() {
 
 function cf_mktemp() {
     echo `mktemp -t $PROG`
+}
+
+
+function cf_autodetect_filetype() {
+    local filename=$1
+    echo `file --brief --mime $filename`
 }
 
 
@@ -137,9 +142,10 @@ function cf_put() {
 
     local obj_name=`basename $filename`
 
-    local content_type=$DEFAULT_CONTENT_TYPE
     if [[ -n $OPT_CONTENT_TYPE ]]; then
-        content_type=$OPT_CONTENT_TYPE
+        local content_type=$OPT_CONTENT_TYPE
+    else
+        local content_type=`cf_autodetect_filetype $filename`
     fi
 
     cf_curl --request PUT --header "Content-Type: $content_type" \
