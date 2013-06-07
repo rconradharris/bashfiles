@@ -14,13 +14,7 @@
 PROG=`basename $0`
 
 function usage() {
-    local cmd=$1
-
-    if [[ -z $cmd ]]; then
-        cmd='<ls|get|mkdir|put|rm|rmdir>'
-    fi
-
-    echo "$PROG $cmd [container] [object-name]"
+    echo "usage: $PROG $@" >&2
     exit 1
 }
 
@@ -80,7 +74,7 @@ function cf_get() {
     local obj_name=$2
 
     if [[ -z $container || -z $obj_name ]]; then
-        usage 'get'
+        usage 'get <container> <object-name>'
     fi
 
     local filename=`basename $obj_name`
@@ -92,7 +86,7 @@ function cf_mkdir() {
     local container=$1
 
     if [[ -z $container ]]; then
-        usage 'mkdir'
+        usage 'mkdir <container>'
     fi
 
     cf_curl --request PUT --upload-file /dev/null $CF_MGMT_URL/$container
@@ -104,7 +98,7 @@ function cf_put() {
     local filename=$2
 
     if [[ -z $container || -z $filename ]]; then
-        usage 'put'
+        usage 'put <container> <object-name>'
     fi
 
     local obj_name=`basename $filename`
@@ -119,7 +113,7 @@ function cf_rm() {
     local obj_name=$2
 
     if [[ -z $container || -z $obj_name ]]; then
-        usage 'rm'
+        usage 'rm <container> <object-name>'
     fi
 
     cf_curl --request DELETE $CF_MGMT_URL/$container/$obj_name
@@ -130,7 +124,7 @@ function cf_rmdir() {
     local container=$1
 
     if [[ -z $container ]]; then
-        usage 'rmdir'
+        usage 'rmdir <container>'
     fi
 
     cf_curl --request DELETE $CF_MGMT_URL/$container
@@ -154,5 +148,5 @@ case $1 in
     rmdir)
         cf_rmdir $2;;
     *)
-        usage;;
+        usage '<ls|get|mkdir|put|rm|rmdir> [container] [object-name]';;
 esac
