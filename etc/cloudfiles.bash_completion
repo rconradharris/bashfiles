@@ -2,7 +2,7 @@ function _cloudfiles_completer () {
     COMPREPLY=()
     local cur="${COMP_WORDS[COMP_CWORD]}"
     local prev="${COMP_WORDS[COMP_CWORD-1]}"
-    local opts=`cloudfiles.sh _bash_completer`
+    local opts=`cloudfiles.sh _bash_completer "$cur" "$prev"`
     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
 }
 

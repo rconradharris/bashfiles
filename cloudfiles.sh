@@ -13,6 +13,7 @@
 #
 PROG=`basename $0`
 CONFIG=~/.$PROG
+COMPLETION_DIR=~/.$PROG-completion
 
 DEFAULT_CF_AUTH_URL_US=https://auth.api.rackspacecloud.com/v1.0
 DEFAULT_CF_AUTH_URL_UK=https://lon.auth.api.rackspacecloud.com/v1.0
@@ -91,6 +92,7 @@ function cf_save_config() {
 CF_USER=$CF_USER
 CF_API_KEY=$CF_API_KEY
 CF_AUTH_URL=$CF_AUTH_URL
+CF_SMART_COMPLETION=$CF_SMART_COMPLETION
 EOF
 }
 
@@ -128,7 +130,20 @@ function cf_retrieve_credentials() {
     fi
 
     if [[ $creds_updated -eq 1 ]]; then
-        local save_creds=`cf_ask_with_default N 'Save Credentials [y/N]? '`
+        # Only ask about smart completion if we were already asking for USER
+        # or API_KEY
+        if [[ -z $CF_SMART_COMPLETION ]]; then
+            local smart_completion=$(cf_ask_with_default y \
+                         'Enable container and object name completion [Y/n]? ')
+
+            if [[ $smart_completion = 'y' || $smart_completion = 'Y' ]]; then
+                CF_SMART_COMPLETION=1
+            else
+                CF_SMART_COMPLETION=0
+            fi
+        fi
+
+        local save_creds=`cf_ask_with_default N 'Save settings [y/N]? '`
 
         if [[ $save_creds = 'y' || $save_creds = 'Y' ]]; then
             cf_save_config
@@ -201,7 +216,16 @@ function cf_ls() {
     cf_curl --output $tmp_file $CF_MGMT_URL/$container
 
     cat $tmp_file
-    rm $tmp_file
+
+    if [[ $CF_SMART_COMPLETION -eq 1 ]]; then
+        if [[ -z $container ]]; then
+            mv $tmp_file $COMPLETION_DIR/container-names
+        else
+            mv $tmp_file $COMPLETION_DIR/$container-object-names
+        fi
+    else
+        rm $tmp_file
+    fi
 }
 
 
@@ -301,18 +325,48 @@ function cf_stat() {
 function cf_init() {
     cf_retrieve_credentials
     cf_auth
+
+    if [[ $CF_SMART_COMPLETION -eq 1 && ! -d $COMPLETION_DIR ]]; then
+        mkdir $COMPLETION_DIR
+    fi
 }
 
 
 function cf_bash_completer() {
-    local words=
-
-    # Options
-    words+=' -s -t'
+    local cur=$1
+    local prev=$2
+    local cmds='ls get mkdir put rm rmdir stat'
 
     # Commands
-    words+=' ls get mkdir put rm rmdir stat'
-    echo $words
+    if [[ $PROG =~ $cur ]]; then
+        echo $cmds
+        return
+    fi
+
+    local container_names=`cat $COMPLETION_DIR/container-names | tr '\n' ' '`
+
+    # Container Names
+    if [[ $cmds =~ $cur || $cmds =~ $prev ]]; then
+        echo $container_names
+        return
+    fi
+
+    # Object Names
+    if [[ $container_names =~ $cur ]]; then
+        local container=$cur
+    elif [[ $container_names =~ $prev ]]; then
+        local container=$prev
+    else
+        local container=
+    fi
+
+    if [[ -n $container ]]; then
+        local obj_filename=$COMPLETION_DIR/$container-object-names
+        if [[ -r $obj_filename ]]; then
+            echo `cat $obj_filename | tr '\n' ' '`
+            return
+        fi
+    fi
 }
 
 
@@ -359,7 +413,7 @@ case $1 in
         cf_init
         cf_stat $2 $3;;
     _bash_completer)
-        cf_bash_completer;;
+        cf_bash_completer $2 $3;;
     *)
         cf_general_usage;;
 esac

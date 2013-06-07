@@ -1,8 +1,3 @@
-- Bash completion story
-    - Command completion [DONE]
-    - Container name completion
-    - Object-name completion
-
 - -h  helptext
 
 - -v version
