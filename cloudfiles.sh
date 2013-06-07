@@ -33,16 +33,6 @@ function load_config() {
 }
 
 
-function check_code() {
-    local code=$1
-
-    if [ $code -lt 200 ] || [ $code -gt 299 ]; then
-        echo "Invalid response code: $code"
-        exit 1
-    fi
-}
-
-
 function cf_auth() {
     CF_AUTH_URL=https://auth.api.rackspacecloud.com/v1.0
 
@@ -63,15 +53,23 @@ function cf_auth() {
 }
 
 
+function cf_curl() {
+    local code=$(curl --silent --fail --write-out '%{http_code}' \
+                      --header "X-Auth-Token: $CF_AUTH_TOKEN" "$@")
+
+    if [ $code -lt 200 ] || [ $code -gt 299 ]; then
+        echo "Invalid response code: $code"
+        exit 1
+    fi
+}
+
+
 function cf_ls() {
     local container=$1
-
-    local url=$CF_MGMT_URL/$container
     local tmp_file=$(mktemp -t cloudfiles.sh)
-    local code=$(curl --silent --fail --write-out '%{http_code}' \
-                      --header "X-Auth-Token: $CF_AUTH_TOKEN" \
-                      --output $tmp_file $url)
-    check_code $code
+
+    cf_curl --output $tmp_file $CF_MGMT_URL/$container
+
     cat $tmp_file
     rm $tmp_file
 }
@@ -86,12 +84,7 @@ function cf_get() {
     fi
 
     local filename=`basename $obj_name`
-    local url=$CF_MGMT_URL/$container/$obj_name
-
-    local code=$(curl --silent --fail --write-out '%{http_code}' \
-                      --header "X-Auth-Token: $CF_AUTH_TOKEN" \
-                      --output $filename $url)
-    check_code $code
+    cf_curl --output $filename $CF_MGMT_URL/$container/$obj_name
 }
 
 
@@ -105,13 +98,8 @@ function cf_put() {
 
     local obj_name=`basename $filename`
     local content_type='application/octet-stream'
-    local url=$CF_MGMT_URL/$container/$obj_name
-
-    local code=$(curl --silent --fail --write-out '%{http_code}' \
-                      --header "X-Auth-Token: $CF_AUTH_TOKEN" \
-                      --request PUT --header "Content-Type: $content_type" \
-                      --upload-file $filename $url)
-    check_code $code
+    cf_curl --request PUT --header "Content-Type: $content_type" \
+            --upload-file $filename $CF_MGMT_URL/$container/$obj_name
 }
 
 
@@ -123,11 +111,7 @@ function cf_rm() {
         usage 'rm'
     fi
 
-    local url=$CF_MGMT_URL/$container/$obj_name
-    local code=$(curl --silent --fail --write-out '%{http_code}' \
-                       --header "X-Auth-Token: $CF_AUTH_TOKEN" \
-                       --request DELETE $url)
-    check_code $code
+    cf_curl --request DELETE $CF_MGMT_URL/$container/$obj_name
 }
 
 
