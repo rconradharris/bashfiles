@@ -1,4 +1,4 @@
-- Ability to set US vs UK endpoint
+- BUG: don't auth if no arguments
 
 - -h  helptext
 

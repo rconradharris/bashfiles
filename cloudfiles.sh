@@ -14,7 +14,8 @@
 PROG=`basename $0`
 CONFIG=~/.$PROG
 
-DEFAULT_CF_AUTH_URL=https://auth.api.rackspacecloud.com/v1.0
+DEFAULT_CF_AUTH_URL_US=https://auth.api.rackspacecloud.com/v1.0
+DEFAULT_CF_AUTH_URL_UK=https://lon.auth.api.rackspacecloud.com/v1.0
 
 OPT_SILENT=0
 OPT_CONTENT_TYPE=
@@ -89,6 +90,7 @@ function cf_save_config() {
     cat > $CONFIG <<EOF
 CF_USER=$CF_USER
 CF_API_KEY=$CF_API_KEY
+CF_AUTH_URL=$CF_AUTH_URL
 EOF
 }
 
@@ -110,6 +112,19 @@ function cf_retrieve_credentials() {
     if [[ -z $CF_API_KEY ]]; then
         cf_ask_required 'CF_API_KEY' 'CloudFiles API Key: '
         creds_updated=1
+    fi
+
+    if [[ -z $CF_AUTH_URL ]]; then
+        local auth_url=$(cf_ask_with_default us \
+                         'Location or Auth URL: [<url>/uk/US]: ')
+
+        if [[ $auth_url == 'uk' || $auth_url == 'UK' ]]; then
+            CF_AUTH_URL=$DEFAULT_CF_AUTH_URL_UK
+        elif [[ $auth_url == 'us' || $auth_url == 'US' ]]; then
+            CF_AUTH_URL=$DEFAULT_CF_AUTH_URL_US
+        else
+            CF_AUTH_URL=$auth_url
+        fi
     fi
 
     if [[ $creds_updated -eq 1 ]]; then
@@ -135,7 +150,7 @@ function cf_autodetect_filetype() {
 
 function cf_auth() {
     if [[ -z $CF_AUTH_URL ]]; then
-        CF_AUTH_URL=$DEFAULT_CF_AUTH_URL
+        CF_AUTH_URL=$DEFAULT_CF_AUTH_URL_US
     fi
 
     local auth_resp=$(
