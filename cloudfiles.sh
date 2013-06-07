@@ -12,13 +12,22 @@
 #       * Lowercase command names (easier to type)
 #
 PROG=`basename $0`
+
 DEFAULT_CF_AUTH_URL=https://auth.api.rackspacecloud.com/v1.0
+DEFAULT_CONTENT_TYPE=application/octet-stream
+
 OPT_SILENT=0
+OPT_CONTENT_TYPE=
 
 
 function usage() {
-    echo "usage: $PROG [-s] $@" >&2
+    echo "usage: $PROG [-s|-t] $@" >&2
     exit 1
+}
+
+
+function general_usage() {
+    usage '<ls|get|mkdir|put|rm|rmdir|stat> [container] [object-name]'
 }
 
 
@@ -127,7 +136,11 @@ function cf_put() {
     fi
 
     local obj_name=`basename $filename`
-    local content_type='application/octet-stream'
+
+    local content_type=$DEFAULT_CONTENT_TYPE
+    if [[ -n $OPT_CONTENT_TYPE ]]; then
+        content_type=$OPT_CONTENT_TYPE
+    fi
 
     cf_curl --request PUT --header "Content-Type: $content_type" \
             --upload-file $filename $CF_MGMT_URL/$container/$obj_name
@@ -183,15 +196,15 @@ function cf_stat() {
 load_config
 cf_auth
 
-while getopts 's' opt; do
-  case $opt in
-    s)
-      OPT_SILENT=1
-    ;;
-    *)
-      usage
-    ;;
-  esac
+while getopts 'st:' opt; do
+    case $opt in
+        s)
+            OPT_SILENT=1;;
+        t)
+            OPT_CONTENT_TYPE=$OPTARG;;
+        *)
+            general_usage;;
+    esac
 done
 
 shift $(($OPTIND - 1))
@@ -212,5 +225,5 @@ case $1 in
     stat)
         cf_stat $2 $3;;
     *)
-        usage '<ls|get|mkdir|put|rm|rmdir|stat> [container] [object-name]';;
+        general_usage;;
 esac
