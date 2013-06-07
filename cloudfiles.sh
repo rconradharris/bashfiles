@@ -17,7 +17,7 @@ function usage() {
     local cmd=$1
 
     if [[ -z $cmd ]]; then
-        cmd='<ls|get|mkdir|put|rm>'
+        cmd='<ls|get|mkdir|put|rm|rmdir>'
     fi
 
     echo "$PROG $cmd [container] [object-name]"
@@ -126,6 +126,17 @@ function cf_rm() {
 }
 
 
+function cf_rmdir() {
+    local container=$1
+
+    if [[ -z $container ]]; then
+        usage 'rmdir'
+    fi
+
+    cf_curl --request DELETE $CF_MGMT_URL/$container
+}
+
+
 load_config
 cf_auth
 
@@ -140,6 +151,8 @@ case $1 in
         cf_put $2 $3;;
     rm)
         cf_rm $2 $3;;
+    rmdir)
+        cf_rmdir $2;;
     *)
         usage;;
 esac
