@@ -12,6 +12,7 @@
 #       * Lowercase command names (easier to type)
 #
 PROG=`basename $0`
+DEFAULT_CF_AUTH_URL=https://auth.api.rackspacecloud.com/v1.0
 
 
 function usage() {
@@ -29,7 +30,9 @@ function load_config() {
 
 
 function cf_auth() {
-    CF_AUTH_URL=https://auth.api.rackspacecloud.com/v1.0
+    if [[ -z $CF_AUTH_URL ]]; then
+        CF_AUTH_URL=$DEFAULT_CF_AUTH_URL
+    fi
 
     local auth_resp=$(
         curl --silent --fail --dump-header - \
