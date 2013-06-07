@@ -1,0 +1,15 @@
+- Ability to set Content-Type via an option
+
+- Progress for upload/download
+    -p option
+    CF_PROGRESS=1
+
+- --help text
+- Interactive mode to query for username and API key w/ option to save that to
+  ~/.cloudfiles.sh
+- Large-file upload support
+
+- Bash completion story
+    - Command completion
+    - Container name completion
+    - Object-name completion

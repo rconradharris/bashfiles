@@ -29,6 +29,11 @@ function load_config() {
 }
 
 
+function cf_mktemp() {
+    echo `mktemp -t $PROG`
+}
+
+
 function cf_auth() {
     if [[ -z $CF_AUTH_URL ]]; then
         CF_AUTH_URL=$DEFAULT_CF_AUTH_URL
@@ -48,7 +53,7 @@ function cf_auth() {
                                     | sed 's/.*: //' \
                                     | tr -d "\r\n")
 
-    if [ -z $CF_AUTH_TOKEN ] || [ -z $CF_MGMT_URL ]; then
+    if [[ -z $CF_AUTH_TOKEN || -z $CF_MGMT_URL ]]; then
         echo "Unable to authenticate, set credentials in ~/.bashrc or" \
              " CF_USER and CF_API_KEY environment variables"
         exit 1
@@ -69,7 +74,7 @@ function cf_curl() {
 
 function cf_ls() {
     local container=$1
-    local tmp_file=$(mktemp -t cloudfiles.sh)
+    local tmp_file=`cf_mktemp`
 
     cf_curl --output $tmp_file $CF_MGMT_URL/$container
 
@@ -140,6 +145,23 @@ function cf_rmdir() {
 }
 
 
+function cf_stat() {
+    local container=$1
+    local obj_name=$2
+
+    local tmp_file=`cf_mktemp`
+
+    # NOTE: if we used --request HEAD instead of --head, curl would expect
+    # Content-Length bytes to be sent as entity body which would cause a
+    # timeout since HEAD requests don't result in a body
+    cf_curl --output /dev/null --head --dump-header $tmp_file \
+            $CF_MGMT_URL/$container/$obj_name
+
+    cat $tmp_file
+    rm $tmp_file
+}
+
+
 load_config
 cf_auth
 
@@ -156,6 +178,8 @@ case $1 in
         cf_rm $2 $3;;
     rmdir)
         cf_rmdir $2;;
+    stat)
+        cf_stat $2 $3;;
     *)
-        usage '<ls|get|mkdir|put|rm|rmdir> [container] [object-name]';;
+        usage '<ls|get|mkdir|put|rm|rmdir|stat> [container] [object-name]';;
 esac

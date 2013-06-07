@@ -40,3 +40,5 @@
           local filename=$1
           rm $filename
       }
+
+* Use ```foo``` for one-liners and ``$(foo | bar)`` for multi-liners
