@@ -1,12 +1,12 @@
+- Bash completion story
+    - Command completion [DONE]
+    - Container name completion
+    - Object-name completion
+
 - -h  helptext
 
 - -v version
 
 - Large-file upload support
-
-- Bash completion story
-    - Command completion
-    - Container name completion
-    - Object-name completion
 
 - Add CHANGELOG

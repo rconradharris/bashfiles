@@ -304,6 +304,18 @@ function cf_init() {
 }
 
 
+function cf_bash_completer() {
+    local words=
+
+    # Options
+    words+=' -s -t'
+
+    # Commands
+    words+=' ls get mkdir put rm rmdir stat'
+    echo $words
+}
+
+
 #############################################################################
 #                                                                           #
 #                                    Main                                   #
@@ -346,6 +358,8 @@ case $1 in
     stat)
         cf_init
         cf_stat $2 $3;;
+    _bash_completer)
+        cf_bash_completer;;
     *)
         cf_general_usage;;
 esac
