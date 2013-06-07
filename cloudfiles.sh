@@ -19,18 +19,18 @@ OPT_SILENT=0
 OPT_CONTENT_TYPE=
 
 
-function usage() {
+function cf_usage() {
     echo "usage: $PROG [-s|-t] $@" >&2
     exit 1
 }
 
 
-function general_usage() {
-    usage '<ls|get|mkdir|put|rm|rmdir|stat> [container] [object-name]'
+function cf_general_usage() {
+    cf_usage '<ls|get|mkdir|put|rm|rmdir|stat> [container] [object-name]'
 }
 
 
-function load_config() {
+function cf_load_config() {
     local config=~/.$PROG
     if [[ -r $config ]]; then
         source $config
@@ -111,7 +111,7 @@ function cf_get() {
     local obj_name=$2
 
     if [[ -z $container || -z $obj_name ]]; then
-        usage 'get <container> <object-name>'
+        cf_usage 'get <container> <object-name>'
     fi
 
     local filename=`basename $obj_name`
@@ -123,7 +123,7 @@ function cf_mkdir() {
     local container=$1
 
     if [[ -z $container ]]; then
-        usage 'mkdir <container>'
+        cf_usage 'mkdir <container>'
     fi
 
     OPT_SILENT=1
@@ -137,7 +137,7 @@ function cf_put() {
     local filename=$2
 
     if [[ -z $container || -z $filename ]]; then
-        usage 'put <container> <object-name>'
+        cf_usage 'put <container> <object-name>'
     fi
 
     local obj_name=`basename $filename`
@@ -158,7 +158,7 @@ function cf_rm() {
     local obj_name=$2
 
     if [[ -z $container || -z $obj_name ]]; then
-        usage 'rm <container> <object-name>'
+        cf_usage 'rm <container> <object-name>'
     fi
 
     OPT_SILENT=1
@@ -171,7 +171,7 @@ function cf_rmdir() {
     local container=$1
 
     if [[ -z $container ]]; then
-        usage 'rmdir <container>'
+        cf_usage 'rmdir <container>'
     fi
 
     OPT_SILENT=1
@@ -199,7 +199,7 @@ function cf_stat() {
 }
 
 
-load_config
+cf_load_config
 cf_auth
 
 while getopts 'st:' opt; do
@@ -209,7 +209,7 @@ while getopts 'st:' opt; do
         t)
             OPT_CONTENT_TYPE=$OPTARG;;
         *)
-            general_usage;;
+            cf_general_usage;;
     esac
 done
 
@@ -231,5 +231,5 @@ case $1 in
     stat)
         cf_stat $2 $3;;
     *)
-        general_usage;;
+        cf_general_usage;;
 esac
