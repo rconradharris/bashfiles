@@ -1,5 +1,3 @@
-- BUG: don't auth if no arguments
-
 - -h  helptext
 
 - -v version

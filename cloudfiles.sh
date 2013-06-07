@@ -298,15 +298,18 @@ function cf_stat() {
 }
 
 
+function cf_init() {
+    cf_retrieve_credentials
+    cf_auth
+}
+
+
 #############################################################################
 #                                                                           #
 #                                    Main                                   #
 #                                                                           #
 #############################################################################
 
-
-cf_retrieve_credentials
-cf_auth
 
 while getopts 'st:' opt; do
     case $opt in
@@ -323,18 +326,25 @@ shift $(($OPTIND - 1))
 
 case $1 in
     ls)
+        cf_init
         cf_ls $2;;
     get)
+        cf_init
         cf_get $2 $3;;
     mkdir)
+        cf_init
         cf_mkdir $2;;
     put)
+        cf_init
         cf_put $2 $3;;
     rm)
+        cf_init
         cf_rm $2 $3;;
     rmdir)
+        cf_init
         cf_rmdir $2;;
     stat)
+        cf_init
         cf_stat $2 $3;;
     *)
         cf_general_usage;;
