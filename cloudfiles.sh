@@ -17,7 +17,7 @@ function usage() {
     local cmd=$1
 
     if [[ -z $cmd ]]; then
-        cmd='<ls|get|put|rm>'
+        cmd='<ls|get|mkdir|put|rm>'
     fi
 
     echo "$PROG $cmd [container] [object-name]"
@@ -88,6 +88,17 @@ function cf_get() {
 }
 
 
+function cf_mkdir() {
+    local container=$1
+
+    if [[ -z $container ]]; then
+        usage 'mkdir'
+    fi
+
+    cf_curl --request PUT --upload-file /dev/null $CF_MGMT_URL/$container
+}
+
+
 function cf_put() {
     local container=$1
     local filename=$2
@@ -123,6 +134,8 @@ case $1 in
         cf_ls $2;;
     get)
         cf_get $2 $3;;
+    mkdir)
+        cf_mkdir $2;;
     put)
         cf_put $2 $3;;
     rm)
