@@ -1,5 +1,3 @@
-- Download to tmpfile and move into place at last sec
-
 - Large-file upload support
 
 - Make container public

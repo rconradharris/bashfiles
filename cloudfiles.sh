@@ -262,9 +262,10 @@ function cf_get() {
     fi
 
     local filename=`basename $obj_name`
+    local tmp_output=.$filename.download
     local tmp_headers=`cf_mktemp`
 
-    cf_curl --dump-header $tmp_headers --output $filename \
+    cf_curl --dump-header $tmp_headers --output $tmp_output \
             $CF_STORAGE_URL/$container/$obj_name
 
     local etag=$(cat $tmp_headers | grep --ignore-case ^Etag \
@@ -273,8 +274,10 @@ function cf_get() {
 
     rm $tmp_headers
 
-    if [[ `cf_md5 $filename` != $etag ]]; then
-        rm $filename
+    if [[ `cf_md5 $tmp_output` == $etag ]]; then
+        mv $tmp_output $filename
+    else
+        rm $tmp_output
         cf_die "ERROR: Failed checksum validation."
     fi
 }
