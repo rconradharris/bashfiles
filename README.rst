@@ -16,6 +16,9 @@ Features
 
 * Progress meter (with -q to disable it)
 
+* ServiceNET support
+
+
 Credit
 ======
 

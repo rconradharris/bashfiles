@@ -11,6 +11,7 @@ DEFAULT_CF_AUTH_URL_UK=https://lon.auth.api.rackspacecloud.com/v1.0
 
 OPT_QUIET=0
 OPT_CONTENT_TYPE=
+OPT_SERVICENET=0
 
 
 function cf_warn() {
@@ -25,7 +26,7 @@ function cf_die() {
 
 
 function cf_usage() {
-    cf_die "usage: $PROG [-hqtv] $@"
+    cf_die "usage: $PROG [-hqstv] $@"
 }
 
 
@@ -84,6 +85,7 @@ CF_USER=$CF_USER
 CF_API_KEY=$CF_API_KEY
 CF_AUTH_URL=$CF_AUTH_URL
 CF_SMART_COMPLETION=$CF_SMART_COMPLETION
+CF_SERVICENET=$CF_SERVICENET
 EOF
 }
 
@@ -117,6 +119,16 @@ function cf_retrieve_credentials() {
             CF_AUTH_URL=$DEFAULT_CF_AUTH_URL_US
         else
             CF_AUTH_URL=$auth_url
+        fi
+    fi
+
+    if [[ -z $CF_SERVICENET ]]; then
+        local snet=`cf_ask_with_default n 'Use ServiceNET [y/N]? '`
+
+        if [[ $snet = 'y' || $snet = 'Y' ]]; then
+            CF_SERVICENET=1
+        else
+            CF_SERVICENET=0
         fi
     fi
 
@@ -154,6 +166,14 @@ function cf_autodetect_filetype() {
 }
 
 
+function cf_handle_snet() {
+    if [[ $OPT_SERVICENET -eq 1 || $CF_SERVICENET -eq 1 ]]; then
+        CF_MGMT_URL=${CF_MGMT_URL/https:\/\//https://snet-}
+        CF_MGMT_URL=${CF_MGMT_URL/http:\/\//http://snet-}
+    fi
+}
+
+
 function cf_auth() {
     if [[ -z $CF_AUTH_URL ]]; then
         CF_AUTH_URL=$DEFAULT_CF_AUTH_URL_US
@@ -178,6 +198,8 @@ function cf_auth() {
              " CF_USER and CF_API_KEY environment variables"
         exit 1
     fi
+
+    cf_handle_snet
 }
 
 
@@ -389,6 +411,7 @@ OPTIONS
 
     -h      Help
     -q      Quiet mode (suppress progress meter)
+    -s      Use Rackspace's ServiceNET network
     -t      Specify Content-Type for an upload (autodetect by default)
     -v      Version
 
@@ -398,6 +421,7 @@ SETTINGS
     CF_USER         CloudFiles username
     CF_API_KEY      CloudFiles API Key
     CF_AUTH_URL     CloudFiles authentication URL
+    CF_SERVICENET   Use Rackspace's ServiceNET network
     CF_SMART_COMPLETION 
                     Whether to enable bash completion against object and
                     container-names
@@ -428,12 +452,14 @@ EOF
 #############################################################################
 
 
-while getopts 'hqt:v' opt; do
+while getopts 'hqst:v' opt; do
     case $opt in
         h)
             cf_help;;
         q)
             OPT_QUIET=1;;
+        s)
+            OPT_SERVICENET=1;;
         t)
             OPT_CONTENT_TYPE=$OPTARG;;
         v)

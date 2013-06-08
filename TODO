@@ -1,6 +1,8 @@
-- Large-file upload support
+- Rename CF_MGMT_URL to CF_STORAGE_URL
 
-- ServiceNET support
+- MD5 checksum verification
+
+- Large-file upload support
 
 - Add CHANGELOG
 
