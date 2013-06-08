@@ -11,6 +11,7 @@
 #
 #       * Lowercase command names (easier to type)
 #
+VERSION=0.1
 PROG=`basename $0`
 CONFIG=~/.$PROG
 COMPLETION_DIR=~/.$PROG-completion
@@ -34,7 +35,7 @@ function cf_die() {
 
 
 function cf_usage() {
-    cf_die "usage: $PROG [-s|-t] $@"
+    cf_die "usage: $PROG [-hstv] $@"
 }
 
 
@@ -370,6 +371,66 @@ function cf_bash_completer() {
 }
 
 
+function cf_version() {
+    echo $VERSION
+    exit 0
+}
+
+
+function cf_help() {
+    cat <<EOF
+SYNOPSIS
+
+    $PROG [options] [container] [object-name]
+
+DESCRIPTION
+
+    $PROG is a utility for working with Rackspace CloudFiles via the
+    command-line. $PROG has minimal dependencies, requiring only bash, curl,
+    and a few other POSIX utilities.
+
+    You can pass settings to $PROG via environment variables or by defining a
+    configuration file located at ~/.cloudfiles.sh.
+
+    $PROG supports bash-completion against commands, container and
+    object-names, and can be enabled with the CF_SMART_COMPLETION=1 setting.
+
+OPTIONS
+
+    -h      Help
+    -s      Silent Mode (suppress progress meter)
+    -t      Specify Content-Type for an upload (autodetect by default)
+    -v      Version
+
+
+SETTINGS
+
+    CF_USER         CloudFiles username
+    CF_API_KEY      CloudFiles API Key
+    CF_AUTH_URL     CloudFiles authentication URL
+    CF_SMART_COMPLETION 
+                    Whether to enable bash completion against object and
+                    container-names
+
+FILES
+
+    ~/.cloudfiles.sh
+    ~/.cloudfiles.sh-completion
+
+AUTHORS
+    Rick Harris
+    Mike Barton
+    Chmouel Boudjnah
+    Jay Payne
+
+BUGS
+
+    Report at https://github.com/rconradharris/cloudfiles2.sh
+EOF
+    exit 0
+}
+
+
 #############################################################################
 #                                                                           #
 #                                    Main                                   #
@@ -377,12 +438,16 @@ function cf_bash_completer() {
 #############################################################################
 
 
-while getopts 'st:' opt; do
+while getopts 'hst:v' opt; do
     case $opt in
+        h)
+            cf_help;;
         s)
             OPT_SILENT=1;;
         t)
             OPT_CONTENT_TYPE=$OPTARG;;
+        v)
+            cf_version;;
         *)
             cf_general_usage;;
     esac

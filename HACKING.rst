@@ -42,3 +42,5 @@
       }
 
 * Use ```foo``` for one-liners and ``$(foo | bar)`` for multi-liners
+
+* When order doesn't matter, default to alphabetical order

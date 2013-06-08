@@ -1,7 +1,8 @@
-- -h  helptext
-
-- -v version
-
 - Large-file upload support
 
 - Add CHANGELOG
+
+- Create install script to
+    - Install base script
+    - Install bash-completion hook (if possible)
+    - Register man page
