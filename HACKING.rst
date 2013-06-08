@@ -43,4 +43,8 @@
 
 * Use ```foo``` for one-liners and ``$(foo | bar)`` for multi-liners
 
-* When order doesn't matter, default to alphabetical order
+* When order doesn't matter, default to alphabetical
+
+* Limit dependencies to curl + POSIX commands
+
+* Test on Linux and Mac OS X

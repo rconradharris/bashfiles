@@ -1,21 +1,41 @@
-- Add examples to README
-    - multiple file handling
-    - output stdout
-    - mv
+BUGS
+====
+
+- Bash-completion fixes
+    - handle multi-file commands
+    - put should complete to filenames everything else object-names
+
+- What to do with -o with multiple files on get
+
+- mv: only rm file if copy was successful
+
+- rmdir: Handle pagination for clear_container
+
+FEATURES
+========
 
 - Make container public
 
 - Make Segment Size configurable?
-
-- Add CHANGELOG
+    - Segment Size must be evenly divisible by DD_BLOCK_SIZE
 
 - Create install script to
     - Install base script
     - Install bash-completion hook (if possible)
     - Register man page
 
-- Switch to SLO large-files?
+- FEATURE: Allow put to come from stdin
 
-- mv: only rm file if copy was successful
+- FEATURE: cat cmd?
 
-- rmdir: Handle pagination for clear_container
+- FEATURE: Switch to SLO large-files?
+
+DOC
+===
+
+- Add CHANGELOG
+
+- Add examples to README
+    - multiple file handling
+    - output stdout
+    - mv
