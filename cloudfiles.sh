@@ -19,7 +19,7 @@ COMPLETION_DIR=~/.$PROG-completion
 DEFAULT_CF_AUTH_URL_US=https://auth.api.rackspacecloud.com/v1.0
 DEFAULT_CF_AUTH_URL_UK=https://lon.auth.api.rackspacecloud.com/v1.0
 
-OPT_SILENT=0
+OPT_QUIET=0
 OPT_CONTENT_TYPE=
 
 
@@ -35,7 +35,7 @@ function cf_die() {
 
 
 function cf_usage() {
-    cf_die "usage: $PROG [-hstv] $@"
+    cf_die "usage: $PROG [-hqtv] $@"
 }
 
 
@@ -194,7 +194,7 @@ function cf_auth() {
 function cf_curl() {
     local opt_silent=
 
-    if [[ $OPT_SILENT -ne 0 ]]; then
+    if [[ $OPT_QUIET -ne 0 ]]; then
         local opt_silent=--silent
     fi
 
@@ -212,7 +212,7 @@ function cf_ls() {
     local container=$1
     local tmp_file=`cf_mktemp`
 
-    OPT_SILENT=1
+    OPT_QUIET=1
 
     cf_curl --output $tmp_file $CF_MGMT_URL/$container
 
@@ -250,7 +250,7 @@ function cf_mkdir() {
         cf_usage 'mkdir <container>'
     fi
 
-    OPT_SILENT=1
+    OPT_QUIET=1
 
     cf_curl --request PUT --upload-file /dev/null $CF_MGMT_URL/$container
 }
@@ -285,7 +285,7 @@ function cf_rm() {
         cf_usage 'rm <container> <object-name>'
     fi
 
-    OPT_SILENT=1
+    OPT_QUIET=1
 
     cf_curl --request DELETE $CF_MGMT_URL/$container/$obj_name
 }
@@ -298,7 +298,7 @@ function cf_rmdir() {
         cf_usage 'rmdir <container>'
     fi
 
-    OPT_SILENT=1
+    OPT_QUIET=1
 
     cf_curl --request DELETE $CF_MGMT_URL/$container
 }
@@ -310,7 +310,7 @@ function cf_stat() {
 
     local tmp_file=`cf_mktemp`
 
-    OPT_SILENT=1
+    OPT_QUIET=1
 
     # NOTE: if we used --request HEAD instead of --head, curl would expect
     # Content-Length bytes to be sent as entity body which would cause a
@@ -339,7 +339,7 @@ function cf_bash_completer() {
     local cmds='ls get mkdir put rm rmdir stat'
 
     # Commands
-    if [[ $PROG =~ $cur ]]; then
+    if [[ $cur = $PROG || $prev = $PROG  ]]; then
         echo $cmds
         return
     fi
@@ -398,7 +398,7 @@ DESCRIPTION
 OPTIONS
 
     -h      Help
-    -s      Silent Mode (suppress progress meter)
+    -q      Quiet mode (suppress progress meter)
     -t      Specify Content-Type for an upload (autodetect by default)
     -v      Version
 
@@ -438,12 +438,12 @@ EOF
 #############################################################################
 
 
-while getopts 'hst:v' opt; do
+while getopts 'hqt:v' opt; do
     case $opt in
         h)
             cf_help;;
-        s)
-            OPT_SILENT=1;;
+        q)
+            OPT_QUIET=1;;
         t)
             OPT_CONTENT_TYPE=$OPTARG;;
         v)
