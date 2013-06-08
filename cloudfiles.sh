@@ -278,8 +278,7 @@ function cf_check_code() {
     local code=$1
 
     if [[ $code -lt 200 || $code -gt 299 ]]; then
-        echo "Invalid response code: $code"
-        exit 1
+        cf_die "Invalid response code: $code"
     fi
 }
 
@@ -435,8 +434,6 @@ function cf_mv() {
     fi
 
     cf_cp $src_container $src_obj_name $dst_container $dst_obj_name
-
-    # FIXME: only remove if copy was successful
     cf_rm $src_container $src_obj_name
 }
 

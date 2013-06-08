@@ -7,8 +7,6 @@ BUGS
 
 - What to do with -o with multiple files on get
 
-- mv: only rm file if copy was successful
-
 - rmdir: Handle pagination for clear_container
 
 FEATURES
@@ -36,9 +34,21 @@ FEATURES
 DOC
 ===
 
+- Add License
+    - Add LICENSE file
+    - Add to README
+
 - Add CHANGELOG
 
 - Add examples to README
     - multiple file handling
     - output stdout
     - mv
+
+
+TEST
+====
+
+- Test against Linux
+
+- Test large-file upload
