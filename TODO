@@ -1,6 +1,9 @@
-- Make container public
+- Add cp command
+- Add mv command
 
 - Ability to upload and download multiple files at once
+
+- Make container public
 
 - Make Segment Size configurable?
 

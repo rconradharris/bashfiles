@@ -24,6 +24,8 @@ Features
 
 * Clear and remove a container with cloudfiles.sh -f rmdir <my-container>
 
+* Specify destination filename or output directly to stdout
+
 Credit
 ======
 

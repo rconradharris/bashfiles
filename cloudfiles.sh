@@ -14,6 +14,7 @@ DD_BLOCK_SIZE=1024
 
 OPT_CONTENT_TYPE=
 OPT_FORCE=0
+OPT_OUTPUT=
 OPT_QUIET=0
 OPT_SERVICENET=0
 
@@ -302,9 +303,22 @@ function cf_get() {
         cf_usage 'get <container> <object-name>'
     fi
 
-    local filename=`basename $obj_name`
-    local tmp_output=.$filename.download
-    local tmp_headers=`cf_mktemp`
+    if [[ -n $OPT_OUTPUT ]]; then
+        local filename=$OPT_OUTPUT
+    else
+        local filename=`basename $obj_name`
+    fi
+
+    cf_init
+
+    if [[ $filename == - ]]; then
+        curl --fail --silent \
+             --header "X-Auth-Token: $CF_AUTH_TOKEN" \
+             $CF_STORAGE_URL/$container/$obj_name
+        return
+    fi
+
+    local output=.$filename.download
 
     if [[ $OPT_QUIET -eq 1 ]]; then
         local opt_silent=--silent
@@ -312,8 +326,9 @@ function cf_get() {
         local opt_silent=
     fi
 
-    cf_init
-    cf_curl --dump-header $tmp_headers --output $tmp_output \
+    local tmp_headers=`cf_mktemp`
+
+    cf_curl $opt_silent --dump-header $tmp_headers --output $output \
             $CF_STORAGE_URL/$container/$obj_name
 
     local etag=$(cat $tmp_headers | grep --ignore-case ^Etag \
@@ -330,15 +345,17 @@ function cf_get() {
 
     rm $tmp_headers
 
-    if [[ $etag == $CONST_ZERO_MD5 ]]; then
+    if [[ $output == - ]]; then
+        true
+    elif [[ $etag == $CONST_ZERO_MD5 ]]; then
         # NOTE: If it's a 0-byte file, curl will not create the output file,
         # so we have to do that ourselves
         touch $filename
         cf_warn "Zero-byte file created"
-    elif [[ $dlo -eq 1 || $etag == `cf_md5 $tmp_output` ]]; then
-        mv $tmp_output $filename
+    elif [[ $dlo -eq 1 || $etag == `cf_md5 $output` ]]; then
+        mv $output $filename
     else
-        rm $tmp_output
+        rm $output
         cf_die "ERROR: Failed checksum validation."
     fi
 }
@@ -367,9 +384,15 @@ function cf_put_small_object() {
 
     local etag=`cf_md5 $filename`
 
+    if [[ $OPT_QUIET -eq 1 ]]; then
+        local opt_silent=--silent
+    else
+        local opt_silent=
+    fi
+
     cf_curl --request PUT --header "Content-Type: $content_type" \
             --header "ETag: $etag" --upload-file $filename \
-            $CF_STORAGE_URL/$container/$obj_name
+            $opt_silent $CF_STORAGE_URL/$container/$obj_name
 }
 
 
@@ -384,6 +407,11 @@ function cf_put_large_object() {
     local segment_num=1
     local skip=0
 
+    if [[ $OPT_QUIET -eq 1 ]]; then
+        local opt_silent=--silent
+    else
+        local opt_silent=
+    fi
     local segments_container=${obj_name}_segments
     local obj_prefix="$segments_container/$obj_name/`date +%s`/$size/"
 
@@ -405,7 +433,7 @@ function cf_put_large_object() {
         local code=$(
             dd if=$filename bs=$DD_BLOCK_SIZE count=$nblocks skip=$skip \
                 2> /dev/null | \
-            curl --fail --write-out '%{http_code}' \
+            curl --fail --write-out '%{http_code}' $opt_silent \
                  --header "X-Auth-Token: $CF_AUTH_TOKEN" \
                  --upload-file - --request PUT \
                  --header "Transfer-Encoding: chunked" \
@@ -425,7 +453,7 @@ function cf_put_large_object() {
     cf_curl --data-binary '' --output /dev/null --request PUT \
             --header "Content-Type: ${content_type}" \
             --header "X-Object-Manifest: ${obj_prefix}" \
-            ${CF_STORAGE_URL}/${container}/${obj_name}
+            $opt_silent ${CF_STORAGE_URL}/${container}/${obj_name}
 }
 
 
@@ -604,6 +632,7 @@ OPTIONS
 
     -h      Help
     -f      Force (for rmdir this will remove all objects first)
+    -o      Output filename ('-' to output to stdout)
     -q      Quiet mode (suppress progress meter)
     -s      Use Rackspace's ServiceNET network
     -t      Specify Content-Type for an upload (autodetect by default)
@@ -646,12 +675,14 @@ EOF
 #############################################################################
 
 
-while getopts 'fhqst:v' opt; do
+while getopts 'fho:qst:v' opt; do
     case $opt in
         f)
             OPT_FORCE=1;;
         h)
             cf_help;;
+        o)
+            OPT_OUTPUT=$OPTARG;;
         q)
             OPT_QUIET=1;;
         s)
