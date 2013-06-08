@@ -385,16 +385,19 @@ function cf_get() {
 
 
 function cf_mkdir() {
-    local container=$1
+    local containers=$@
 
-    if [[ -z $container ]]; then
-        cf_usage 'mkdir <container>'
+    if [[ -z $containers ]]; then
+        cf_usage 'mkdir <containers>'
     fi
 
     cf_init
-    cf_curl --silent --output /dev/null --request PUT \
-            --upload-file /dev/null \
-            $CF_STORAGE_URL/$container
+
+    for container in $containers; do
+        cf_curl --silent --output /dev/null --request PUT \
+                --upload-file /dev/null \
+                $CF_STORAGE_URL/$container
+    done
 }
 
 
@@ -568,19 +571,21 @@ function cf_clear_container() {
 
 
 function cf_rmdir() {
-    local container=$1
+    local containers=$@
 
-    if [[ -z $container ]]; then
-        cf_usage 'rmdir <container>'
+    if [[ -z $containers ]]; then
+        cf_usage 'rmdir <containers>'
     fi
 
     cf_init
 
-    if [[ $OPT_FORCE -eq 1 ]]; then
-        cf_clear_container $container
-    fi
+    for container in $containers; do
+        if [[ $OPT_FORCE -eq 1 ]]; then
+            cf_clear_container $container
+        fi
 
-    cf_curl --silent --request DELETE $CF_STORAGE_URL/$container
+        cf_curl --silent --request DELETE $CF_STORAGE_URL/$container
+    done
 }
 
 
@@ -772,7 +777,7 @@ case $cmd in
     get)
         cf_get $@;;
     mkdir)
-        cf_mkdir $1;;
+        cf_mkdir $@;;
     mv)
         cf_mv $1 $2 $3 $4;;
     put)
@@ -780,7 +785,7 @@ case $cmd in
     rm)
         cf_rm $@;;
     rmdir)
-        cf_rmdir $1;;
+        cf_rmdir $@;;
     stat)
         cf_stat $1 $2;;
     _bash_completer)
