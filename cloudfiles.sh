@@ -12,8 +12,9 @@ DEFAULT_CF_AUTH_URL_UK=https://lon.auth.api.rackspacecloud.com/v1.0
 CF_SEGMENT_SIZE=5368709120
 DD_BLOCK_SIZE=1024
 
-OPT_QUIET=0
 OPT_CONTENT_TYPE=
+OPT_FORCE=0
+OPT_QUIET=0
 OPT_SERVICENET=0
 
 CONST_ZERO_MD5=d41d8cd98f00b204e9800998ecf8427e
@@ -38,7 +39,7 @@ function cf_die() {
 
 
 function cf_usage() {
-    cf_die "usage: $PROG [-hqstv] $@"
+    cf_die "usage: $PROG [-fhqstv] $@"
 }
 
 
@@ -276,6 +277,7 @@ function cf_ls() {
     local container=$1
     local tmp_file=`cf_mktemp`
 
+    cf_init
     cf_curl --silent --output $tmp_file $CF_STORAGE_URL/$container
 
     cat $tmp_file
@@ -310,6 +312,7 @@ function cf_get() {
         local opt_silent=
     fi
 
+    cf_init
     cf_curl --dump-header $tmp_headers --output $tmp_output \
             $CF_STORAGE_URL/$container/$obj_name
 
@@ -348,6 +351,7 @@ function cf_mkdir() {
         cf_usage 'mkdir <container>'
     fi
 
+    cf_init
     cf_curl --silent --output /dev/null --request PUT \
             --upload-file /dev/null \
             $CF_STORAGE_URL/$container
@@ -443,6 +447,7 @@ function cf_put() {
 
     local size=`cf_size $filename`
 
+    cf_init
     if [[ $size -gt $CF_SEGMENT_SIZE ]]; then
         cf_put_large_object $container $filename $obj_name "$content_type" $size
     else
@@ -459,7 +464,27 @@ function cf_rm() {
         cf_usage 'rm <container> <object-name>'
     fi
 
+    cf_init
     cf_curl --silent --request DELETE $CF_STORAGE_URL/$container/$obj_name
+}
+
+
+function cf_clear_container() {
+    local container=$1
+
+    # TODO: handle pagination
+    local obj_names=`cf_ls $container`
+
+    # NOTE: tr -d is needed for Mac OS X, since wc -w has leading spaces
+    # in output
+    local total_objects=`echo $obj_names | wc -w | tr -d ' '`
+    local idx=1
+
+    for obj_name in $obj_names; do
+        cf_log "Deleting $idx/$total_objects: $obj_name"
+        let idx++
+        cf_rm $container $obj_name
+    done
 }
 
 
@@ -468,6 +493,12 @@ function cf_rmdir() {
 
     if [[ -z $container ]]; then
         cf_usage 'rmdir <container>'
+    fi
+
+    cf_init
+
+    if [[ $OPT_FORCE -eq 1 ]]; then
+        cf_clear_container $container
     fi
 
     cf_curl --silent --request DELETE $CF_STORAGE_URL/$container
@@ -479,6 +510,8 @@ function cf_stat() {
     local obj_name=$2
 
     local tmp_file=`cf_mktemp`
+
+    cf_init
 
     # NOTE: if we used --request HEAD instead of --head, curl would expect
     # Content-Length bytes to be sent as entity body which would cause a
@@ -492,6 +525,10 @@ function cf_stat() {
 
 
 function cf_init() {
+    if [[ -n $CF_AUTH_TOKEN ]]; then
+        return
+    fi
+
     cf_retrieve_credentials
     cf_auth
 
@@ -566,6 +603,7 @@ DESCRIPTION
 OPTIONS
 
     -h      Help
+    -f      Force (for rmdir this will remove all objects first)
     -q      Quiet mode (suppress progress meter)
     -s      Use Rackspace's ServiceNET network
     -t      Specify Content-Type for an upload (autodetect by default)
@@ -608,8 +646,10 @@ EOF
 #############################################################################
 
 
-while getopts 'hqst:v' opt; do
+while getopts 'fhqst:v' opt; do
     case $opt in
+        f)
+            OPT_FORCE=1;;
         h)
             cf_help;;
         q)
@@ -629,25 +669,18 @@ shift $(($OPTIND - 1))
 
 case $1 in
     ls)
-        cf_init
         cf_ls $2;;
     get)
-        cf_init
         cf_get $2 $3;;
     mkdir)
-        cf_init
         cf_mkdir $2;;
     put)
-        cf_init
         cf_put $2 $3;;
     rm)
-        cf_init
         cf_rm $2 $3;;
     rmdir)
-        cf_init
         cf_rmdir $2;;
     stat)
-        cf_init
         cf_stat $2 $3;;
     _bash_completer)
         cf_bash_completer $2 $3;;

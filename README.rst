@@ -22,6 +22,8 @@ Features
 
 * Large-Object Support (Dynamic Large Objects)
 
+* Clear and remove a container with cloudfiles.sh -f rmdir <my-container>
+
 Credit
 ======
 

@@ -1,7 +1,5 @@
 - Make container public
 
-- Move cf_init into functions
-
 - Ability to upload and download multiple files at once
 
 - Make Segment Size configurable?
@@ -14,3 +12,5 @@
     - Register man page
 
 - Switch to SLO large-files?
+
+- Handle pagination for rmdir -f
