@@ -185,6 +185,19 @@ function cf_md5() {
 }
 
 
+function cf_urlencode() {
+    # http://gimi.name/snippets/urlencode-and-urldecode-for-bash-scripting-using-sed/
+    echo "$1" | sed -e 's/%/%25/g;s/ /%20/g;s/ /%09/g;s/!/%21/g;s/"/%22/g;' \
+                    -e 's/#/%23/g;s/\$/%24/g;s/\&/%26/g;s/'\''/%27/g;'\
+                    -e 's/(/%28/g;s/)/%29/g;s/\*/%2a/g;s/+/%2b/g;'\
+                    -e 's/,/%2c/g; s/-/%2d/g; s/\./%2e/g; s/:/%3a/g;'\
+                    -e 's/;/%3b/g; s//%3e/g; s/?/%3f/g; s/@/%40/g;'\
+                    -e 's/\[/%5b/g; s/\\/%5c/g; s/\]/%5d/g; s/\^/%5e/g;'\
+                    -e 's/_/%5f/g; s/`/%60/g; s/{/%7b/g; s/|/%7c/g;'\
+                    -e 's/}/%7d/g; s/~/%7e/g; s/      /%09/g;'
+}
+
+
 function cf_mktemp() {
     echo `mktemp -t $PROG`
 }
@@ -272,9 +285,11 @@ function cf_check_code() {
 
 
 function cf_curl() {
+    local url=`cf_urlencode $1`
+    shift
     local code=$(curl --fail --write-out '%{http_code}' \
-                      --header "X-Auth-Token: $CF_AUTH_TOKEN" "$@")
-
+                      --header "X-Auth-Token: $CF_AUTH_TOKEN" \
+                      "$@" "$CF_STORAGE_URL/$url")
     cf_check_code $code
 }
 
@@ -293,9 +308,8 @@ function cf_cp() {
     fi
 
     cf_init
-    cf_curl --silent --request COPY \
-            --header "Destination: /$dst_container/$dst_obj_name" \
-            $CF_STORAGE_URL/$src_container/$src_obj_name
+    cf_curl $src_container/$src_obj_name --silent --request COPY \
+            --header "Destination: /$dst_container/$dst_obj_name"
 }
 
 
@@ -304,7 +318,7 @@ function cf_ls() {
     local tmp_file=`cf_mktemp`
 
     cf_init
-    cf_curl --silent --output $tmp_file $CF_STORAGE_URL/$container
+    cf_curl "$container" --silent --output $tmp_file
 
     cat $tmp_file
 
@@ -339,6 +353,8 @@ function cf_get() {
         fi
 
         if [[ $filename == - ]]; then
+            # FIXME: unify with cf_curl
+            obj_name=`cf_urlencode $obj_name`
             curl --fail --silent \
                  --header "X-Auth-Token: $CF_AUTH_TOKEN" \
                  $CF_STORAGE_URL/$container/$obj_name
@@ -355,8 +371,8 @@ function cf_get() {
 
         local tmp_headers=`cf_mktemp`
 
-        cf_curl $opt_silent --dump-header $tmp_headers --output $output \
-                $CF_STORAGE_URL/$container/$obj_name
+        cf_curl $container/$obj_name $opt_silent --dump-header $tmp_headers \
+                --output $output
 
         local etag=$(cat $tmp_headers | grep --ignore-case ^Etag \
                                       | sed 's/.*: //' \
@@ -399,9 +415,8 @@ function cf_mkdir() {
     cf_init
 
     for container in $containers; do
-        cf_curl --silent --output /dev/null --request PUT \
-                --upload-file /dev/null \
-                $CF_STORAGE_URL/$container
+        cf_curl $container --silent --output /dev/null --request PUT \
+                --upload-file /dev/null
     done
 }
 
@@ -441,9 +456,9 @@ function cf_put_small_object() {
         local opt_silent=
     fi
 
-    cf_curl --request PUT --header "Content-Type: $content_type" \
-            --header "ETag: $etag" --upload-file $filename \
-            $opt_silent $CF_STORAGE_URL/$container/$obj_name
+    cf_curl $container/$obj_name --request PUT \
+            --header "Content-Type: $content_type" \
+            --header "ETag: $etag" --upload-file $filename $opt_silent
 }
 
 
@@ -463,10 +478,10 @@ function cf_put_large_object() {
     else
         local opt_silent=
     fi
-    local segments_container=${obj_name}_segments
-    local obj_prefix="$segments_container/$obj_name/`date +%s`/$size/"
+    local seg_container=${obj_name}_segments
+    local seg_prefix="$seg_container/$obj_name/`date +%s`/$size/"
 
-    cf_mkdir ${segments_container}
+    cf_mkdir ${seg_container}
 
     local total_segments=`cf_compute_num_blocks $size $CF_SEGMENT_SIZE`
 
@@ -480,7 +495,10 @@ function cf_put_large_object() {
         local nblocks=`cf_compute_num_blocks $length $DD_BLOCK_SIZE`
 
         cf_log "Uploading segment $segment_num/$total_segments"
+
         # FIXME: unify this with cf_curl
+        local seg_name="$seg_prefix$(printf '%08d' $segment_num)"
+        seg_name=`cf_urlencode $seg_name`
         local code=$(
             dd if=$filename bs=$DD_BLOCK_SIZE count=$nblocks skip=$skip \
                 2> /dev/null | \
@@ -489,7 +507,7 @@ function cf_put_large_object() {
                  --upload-file - --request PUT \
                  --header "Transfer-Encoding: chunked" \
                  --header "Content-Type: $content_type" \
-                 $CF_STORAGE_URL/$obj_prefix$(printf "%08d" $segment_num))
+                 $CF_STORAGE_URL/$seg_name)
 
         cf_check_code $code
 
@@ -501,10 +519,10 @@ function cf_put_large_object() {
     done
 
     cf_log "Uploading manifest for ${filename}"
-    cf_curl --data-binary '' --output /dev/null --request PUT \
-            --header "Content-Type: ${content_type}" \
-            --header "X-Object-Manifest: ${obj_prefix}" \
-            $opt_silent ${CF_STORAGE_URL}/${container}/${obj_name}
+    cf_curl ${container}/${obj_name} --data-binary '' --output /dev/null \
+            --request PUT --header "Content-Type: ${content_type}" \
+            --header "X-Object-Manifest: ${seg_prefix}" \
+            $opt_silent
 }
 
 
@@ -561,7 +579,7 @@ function cf_rm() {
     cf_init
 
     for obj_name in $obj_names; do
-        cf_curl --silent --request DELETE $CF_STORAGE_URL/$container/$obj_name
+        cf_curl $container/$obj_name --silent --request DELETE
     done
 }
 
@@ -599,7 +617,7 @@ function cf_rmdir() {
             cf_clear_container $container
         fi
 
-        cf_curl --silent --request DELETE $CF_STORAGE_URL/$container
+        cf_curl $container --silent --request DELETE
     done
 }
 
@@ -615,8 +633,8 @@ function cf_stat() {
     # NOTE: if we used --request HEAD instead of --head, curl would expect
     # Content-Length bytes to be sent as entity body which would cause a
     # timeout since HEAD requests don't result in a body
-    cf_curl --silent --output /dev/null --head --dump-header $tmp_file \
-            $CF_STORAGE_URL/$container/$obj_name
+    cf_curl $container/$obj_name --silent --output /dev/null --head \
+            --dump-header $tmp_file
 
     cat $tmp_file
     rm $tmp_file

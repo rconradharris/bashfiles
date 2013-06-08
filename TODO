@@ -11,8 +11,6 @@ BUGS
 
 - rmdir: Handle pagination for clear_container
 
-- URL encode object-name
-
 FEATURES
 ========
 
