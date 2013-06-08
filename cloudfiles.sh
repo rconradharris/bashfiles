@@ -771,15 +771,15 @@ shift
 
 case $cmd in
     cp)
-        cf_cp $1 $2 $3 $4;;
+        cf_cp $@;;
     ls)
-        cf_ls $1;;
+        cf_ls $@;;
     get)
         cf_get $@;;
     mkdir)
         cf_mkdir $@;;
     mv)
-        cf_mv $1 $2 $3 $4;;
+        cf_mv $@;;
     put)
         cf_put $@;;
     rm)
@@ -787,9 +787,9 @@ case $cmd in
     rmdir)
         cf_rmdir $@;;
     stat)
-        cf_stat $1 $2;;
+        cf_stat $@;;
     _bash_completer)
-        cf_bash_completer $1 $2;;
+        cf_bash_completer $@;;
     *)
         cf_general_usage;;
 esac
