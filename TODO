@@ -1,5 +1,12 @@
 - Ability to upload and download multiple files at once
 
+- Make all commands take $@
+
+- Add examples to README
+    - multiple file handling
+    - output stdout
+    - mv
+
 - Make container public
 
 - Make Segment Size configurable?

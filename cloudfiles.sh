@@ -317,67 +317,72 @@ function cf_ls() {
 
 function cf_get() {
     local container=$1
-    local obj_name=$2
+    shift
+    local obj_names=$@
 
-    if [[ -z $container || -z $obj_name ]]; then
-        cf_usage 'get <container> <object-name>'
-    fi
-
-    if [[ -n $OPT_OUTPUT ]]; then
-        local filename=$OPT_OUTPUT
-    else
-        local filename=`basename $obj_name`
+    if [[ -z $container || -z $obj_names ]]; then
+        cf_usage 'get <container> <object-names>'
     fi
 
     cf_init
 
-    if [[ $filename == - ]]; then
-        curl --fail --silent \
-             --header "X-Auth-Token: $CF_AUTH_TOKEN" \
-             $CF_STORAGE_URL/$container/$obj_name
-        return
-    fi
+    for obj_name in $obj_names; do
+        if [[ -n $OPT_OUTPUT ]]; then
+            local filename=$OPT_OUTPUT
+        else
+            local filename=`basename $obj_name`
+        fi
 
-    local output=.$filename.download
+        if [[ $filename == - ]]; then
+            curl --fail --silent \
+                 --header "X-Auth-Token: $CF_AUTH_TOKEN" \
+                 $CF_STORAGE_URL/$container/$obj_name
+            continue
+        fi
 
-    if [[ $OPT_QUIET -eq 1 ]]; then
-        local opt_silent=--silent
-    else
-        local opt_silent=
-    fi
+        local output=.$filename.download
 
-    local tmp_headers=`cf_mktemp`
+        if [[ $OPT_QUIET -eq 1 ]]; then
+            local opt_silent=--silent
+        else
+            local opt_silent=
+        fi
 
-    cf_curl $opt_silent --dump-header $tmp_headers --output $output \
-            $CF_STORAGE_URL/$container/$obj_name
+        local tmp_headers=`cf_mktemp`
 
-    local etag=$(cat $tmp_headers | grep --ignore-case ^Etag \
-                                  | sed 's/.*: //' \
-                                  | tr -d "\r\n" \
-                                  | tr -d '"')
+        cf_curl $opt_silent --dump-header $tmp_headers --output $output \
+                $CF_STORAGE_URL/$container/$obj_name
 
-    if [[ -z `grep --ignore-case X-Object-Manifest $tmp_headers` ]]; then
-        local dlo=0
-    else
-        # NOTE: Dynamic Large Objects won't have an ETag that matches
-        local dlo=1
-    fi
+        local etag=$(cat $tmp_headers | grep --ignore-case ^Etag \
+                                      | sed 's/.*: //' \
+                                      | tr -d "\r\n" \
+                                      | tr -d '"')
 
-    rm $tmp_headers
+        if [[ -z `grep --ignore-case X-Object-Manifest $tmp_headers` ]]; then
+            local dlo=0
+        else
+            # NOTE: Dynamic Large Objects won't have an ETag that matches
+            local dlo=1
+        fi
 
-    if [[ $output == - ]]; then
-        true
-    elif [[ $etag == $CONST_ZERO_MD5 ]]; then
-        # NOTE: If it's a 0-byte file, curl will not create the output file,
-        # so we have to do that ourselves
-        touch $filename
-        cf_warn "Zero-byte file created"
-    elif [[ $dlo -eq 1 || $etag == `cf_md5 $output` ]]; then
-        mv $output $filename
-    else
-        rm $output
-        cf_die "ERROR: Failed checksum validation."
-    fi
+        rm $tmp_headers
+
+        if [[ $output == - ]]; then
+            true
+        elif [[ $etag == $CONST_ZERO_MD5 ]]; then
+            # NOTE: If it's a 0-byte file, curl will not create the output
+            # file, so we have to do that ourselves
+            touch $filename
+            cf_warn "Zero-byte file created"
+        elif [[ $dlo -eq 1 || $etag == `cf_md5 $output` ]]; then
+            mv $output $filename
+        else
+            rm $output
+            cf_die "ERROR: Failed checksum validation."
+        fi
+
+        cf_log ""
+    done
 }
 
 
@@ -654,7 +659,7 @@ function cf_help() {
     cat <<EOF
 SYNOPSIS
 
-    $PROG [options] [commands] [container] [object-name]
+    $PROG [options] [commands] [container] [object-names]
 
 DESCRIPTION
 
@@ -749,27 +754,31 @@ done
 
 shift $(($OPTIND - 1))
 
-case $1 in
+cmd=$1
+
+shift
+
+case $cmd in
     cp)
-        cf_cp $2 $3 $4 $5;;
+        cf_cp $1 $2 $3 $4;;
     ls)
-        cf_ls $2;;
+        cf_ls $1;;
     get)
-        cf_get $2 $3;;
+        cf_get $@;;
     mkdir)
-        cf_mkdir $2;;
+        cf_mkdir $1;;
     mv)
-        cf_mv $2 $3 $4 $5;;
+        cf_mv $1 $2 $3 $4;;
     put)
-        cf_put $2 $3;;
+        cf_put $1 $2;;
     rm)
-        cf_rm $2 $3;;
+        cf_rm $1 $2;;
     rmdir)
-        cf_rmdir $2;;
+        cf_rmdir $1;;
     stat)
-        cf_stat $2 $3;;
+        cf_stat $1 $2;;
     _bash_completer)
-        cf_bash_completer $2 $3;;
+        cf_bash_completer $1 $2;;
     *)
         cf_general_usage;;
 esac

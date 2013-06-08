@@ -7,7 +7,7 @@ CloudFiles with bash+curl
 Features
 ========
 
-* Commands: ls, get, mkdir, put, rm, rmdir, stat
+* Commands: cp, get, ls, mkdir, mv, put, rm, rmdir, stat
 
 * Bash-completion against commands, container-names, and object-names (this
   saves *so* much typing!)
