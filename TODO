@@ -1,4 +1,6 @@
-- Ability to upload and download multiple files at once
+- Multi-file rm
+- Multi-container rmdir
+- Multi-container mkdir
 
 - Make all commands take $@
 

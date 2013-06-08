@@ -380,8 +380,6 @@ function cf_get() {
             rm $output
             cf_die "ERROR: Failed checksum validation."
         fi
-
-        cf_log ""
     done
 }
 
@@ -504,28 +502,32 @@ function cf_put_large_object() {
 
 function cf_put() {
     local container=$1
-    local filename=$2
+    shift
+    local filenames=$@
 
-    if [[ -z $container || -z $filename ]]; then
-        cf_usage 'put <container> <object-name>'
+    if [[ -z $container || -z $filenames ]]; then
+        cf_usage 'put <container> <filenames>'
     fi
-
-    local obj_name=`basename $filename`
-
-    if [[ -n $OPT_CONTENT_TYPE ]]; then
-        local content_type=$OPT_CONTENT_TYPE
-    else
-        local content_type=`cf_autodetect_filetype $filename`
-    fi
-
-    local size=`cf_size $filename`
 
     cf_init
-    if [[ $size -gt $CF_SEGMENT_SIZE ]]; then
-        cf_put_large_object $container $filename $obj_name "$content_type" $size
-    else
-        cf_put_small_object $container $filename $obj_name "$content_type" $size
-    fi
+
+    for filename in $filenames; do
+        local obj_name=`basename $filename`
+
+        if [[ -n $OPT_CONTENT_TYPE ]]; then
+            local content_type=$OPT_CONTENT_TYPE
+        else
+            local content_type=`cf_autodetect_filetype $filename`
+        fi
+
+        local size=`cf_size $filename`
+
+        if [[ $size -gt $CF_SEGMENT_SIZE ]]; then
+            cf_put_large_object $container $filename $obj_name "$content_type" $size
+        else
+            cf_put_small_object $container $filename $obj_name "$content_type" $size
+        fi
+    done
 }
 
 
@@ -770,7 +772,7 @@ case $cmd in
     mv)
         cf_mv $1 $2 $3 $4;;
     put)
-        cf_put $1 $2;;
+        cf_put $@;;
     rm)
         cf_rm $1 $2;;
     rmdir)
