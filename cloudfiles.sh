@@ -45,7 +45,7 @@ function cf_usage() {
 
 
 function cf_general_usage() {
-    cf_usage '<cp|get|ls|mkdir|put|rm|rmdir|stat> [container] [object-name]'
+    cf_usage '<cp|get|ls|mkdir|mv|put|rm|rmdir|stat> [container] [object-name]'
 }
 
 
@@ -287,6 +287,7 @@ function cf_cp() {
                  ' <dst-container> <dst-object-name>'
     fi
 
+    cf_init
     cf_curl --silent --request COPY \
             --header "Destination: /$dst_container/$dst_obj_name" \
             $CF_STORAGE_URL/$src_container/$src_obj_name
@@ -391,6 +392,26 @@ function cf_mkdir() {
     cf_curl --silent --output /dev/null --request PUT \
             --upload-file /dev/null \
             $CF_STORAGE_URL/$container
+}
+
+
+function cf_mv() {
+    local src_container=$1
+    local src_obj_name=$2
+    local dst_container=$3
+    local dst_obj_name=$4
+
+    if [[ -z $src_container || -z $src_obj_name
+                            || -z $dst_container \
+                            || -z $dst_obj_name ]]; then
+        cf_usage 'mv <src-container> <src-object-name>' \
+                 ' <dst-container> <dst-object-name>'
+    fi
+
+    cf_cp $src_container $src_obj_name $dst_container $dst_obj_name
+
+    # FIXME: only remove if copy was successful
+    cf_rm $src_container $src_obj_name
 }
 
 
@@ -588,7 +609,7 @@ function cf_init() {
 function cf_bash_completer() {
     local cur=$1
     local prev=$2
-    local cmds='cp get ls mkdir put rm rmdir stat'
+    local cmds='cp get ls mkdir mv put rm rmdir stat'
 
     # Commands
     if [[ $cur = $PROG || $prev = $PROG  ]]; then
@@ -726,6 +747,8 @@ case $1 in
         cf_get $2 $3;;
     mkdir)
         cf_mkdir $2;;
+    mv)
+        cf_mv $2 $3 $4 $5;;
     put)
         cf_put $2 $3;;
     rm)
