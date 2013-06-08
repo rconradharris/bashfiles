@@ -11,24 +11,29 @@ BUGS
 
 - rmdir: Handle pagination for clear_container
 
+- URL encode object-name
+
 FEATURES
 ========
 
 - Make container public
-
-- Make Segment Size configurable?
-    - Segment Size must be evenly divisible by DD_BLOCK_SIZE
 
 - Create install script to
     - Install base script
     - Install bash-completion hook (if possible)
     - Register man page
 
-- FEATURE: Allow put to come from stdin
+- Allow put to come from stdin
 
-- FEATURE: cat cmd?
+- cat cmd?
 
-- FEATURE: Switch to SLO large-files?
+- Switch to SLO large-files?
+
+- Add context-help:
+    - cloudfiles.sh help (general help)
+    - cloudfiles.sh help get (get specific help)
+
+- Add V2 AUTH
 
 DOC
 ===

@@ -33,6 +33,11 @@ function cf_warn() {
 }
 
 
+function cf_error() {
+    echo "error: $@" >&2
+}
+
+
 function cf_die() {
     echo "$@" >&2
     exit 1
@@ -508,6 +513,8 @@ function cf_put() {
     shift
     local filenames=$@
 
+    local ret=0
+
     if [[ -z $container || -z $filenames ]]; then
         cf_usage 'put <container> <filenames>'
     fi
@@ -515,6 +522,12 @@ function cf_put() {
     cf_init
 
     for filename in $filenames; do
+        if [[ ! -e $filename ]]; then
+            cf_error "File not found: $filename"
+            ret=1
+            continue
+        fi
+
         local obj_name=`basename $filename`
 
         if [[ -n $OPT_CONTENT_TYPE ]]; then
@@ -531,6 +544,8 @@ function cf_put() {
             cf_put_small_object $container $filename $obj_name "$content_type" $size
         fi
     done
+
+    return $ret
 }
 
 
