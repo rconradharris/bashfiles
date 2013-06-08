@@ -9,9 +9,21 @@ COMPLETION_DIR=~/.$PROG-completion
 DEFAULT_CF_AUTH_URL_US=https://auth.api.rackspacecloud.com/v1.0
 DEFAULT_CF_AUTH_URL_UK=https://lon.auth.api.rackspacecloud.com/v1.0
 
+CF_SEGMENT_SIZE=5368709120
+DD_BLOCK_SIZE=1024
+
 OPT_QUIET=0
 OPT_CONTENT_TYPE=
 OPT_SERVICENET=0
+
+CONST_ZERO_MD5=d41d8cd98f00b204e9800998ecf8427e
+
+
+function cf_log() {
+    if [[ $OPT_QUIET -eq 0 ]]; then
+        echo "$@" >&2
+    fi
+}
 
 
 function cf_warn() {
@@ -171,6 +183,34 @@ function cf_mktemp() {
 }
 
 
+function cf_size() {
+    local filename=$1
+
+    if stat -c 2>&1 | grep -q illegal; then
+        # Mac OS X
+        echo `stat -f%z ${filename}`
+    else
+        # Linux
+        echo `stat -c%s ${filename}`
+    fi
+}
+
+
+function cf_compute_num_blocks() {
+    local total_size=$1
+    local block_size=$2
+
+    let nblocks=$total_size/$block_size
+    let reminader=$total_size%$block_size
+
+    if [[ $remainder -gt 0 ]]; then
+        let nblocks++
+    fi
+
+    echo $nblocks
+}
+
+
 function cf_autodetect_filetype() {
     local filename=$1
     echo `file --brief --mime $filename`
@@ -214,20 +254,21 @@ function cf_auth() {
 }
 
 
-function cf_curl() {
-    local opt_silent=
+function cf_check_code() {
+    local code=$1
 
-    if [[ $OPT_QUIET -ne 0 ]]; then
-        local opt_silent=--silent
-    fi
-
-    local code=$(curl $opt_silent --fail --write-out '%{http_code}' \
-                      --header "X-Auth-Token: $CF_AUTH_TOKEN" "$@")
-
-    if [ $code -lt 200 ] || [ $code -gt 299 ]; then
+    if [[ $code -lt 200 || $code -gt 299 ]]; then
         echo "Invalid response code: $code"
         exit 1
     fi
+}
+
+
+function cf_curl() {
+    local code=$(curl --fail --write-out '%{http_code}' \
+                      --header "X-Auth-Token: $CF_AUTH_TOKEN" "$@")
+
+    cf_check_code $code
 }
 
 
@@ -235,9 +276,7 @@ function cf_ls() {
     local container=$1
     local tmp_file=`cf_mktemp`
 
-    OPT_QUIET=1
-
-    cf_curl --output $tmp_file $CF_STORAGE_URL/$container
+    cf_curl --silent --output $tmp_file $CF_STORAGE_URL/$container
 
     cat $tmp_file
 
@@ -265,16 +304,35 @@ function cf_get() {
     local tmp_output=.$filename.download
     local tmp_headers=`cf_mktemp`
 
+    if [[ $OPT_QUIET -eq 1 ]]; then
+        local opt_silent=--silent
+    else
+        local opt_silent=
+    fi
+
     cf_curl --dump-header $tmp_headers --output $tmp_output \
             $CF_STORAGE_URL/$container/$obj_name
 
     local etag=$(cat $tmp_headers | grep --ignore-case ^Etag \
                                   | sed 's/.*: //' \
-                                  | tr -d "\r\n")
+                                  | tr -d "\r\n" \
+                                  | tr -d '"')
+
+    if [[ -z `grep --ignore-case X-Object-Manifest $tmp_headers` ]]; then
+        local dlo=0
+    else
+        # NOTE: Dynamic Large Objects won't have an ETag that matches
+        local dlo=1
+    fi
 
     rm $tmp_headers
 
-    if [[ `cf_md5 $tmp_output` == $etag ]]; then
+    if [[ $etag == $CONST_ZERO_MD5 ]]; then
+        # NOTE: If it's a 0-byte file, curl will not create the output file,
+        # so we have to do that ourselves
+        touch $filename
+        cf_warn "Zero-byte file created"
+    elif [[ $dlo -eq 1 || $etag == `cf_md5 $tmp_output` ]]; then
         mv $tmp_output $filename
     else
         rm $tmp_output
@@ -290,9 +348,80 @@ function cf_mkdir() {
         cf_usage 'mkdir <container>'
     fi
 
-    OPT_QUIET=1
+    cf_curl --silent --output /dev/null --request PUT \
+            --upload-file /dev/null \
+            $CF_STORAGE_URL/$container
+}
 
-    cf_curl --request PUT --upload-file /dev/null $CF_STORAGE_URL/$container
+
+function cf_put_small_object() {
+    local container=$1
+    local filename=$2
+    local obj_name=$3
+    local content_type=$4
+    local size=$5
+
+    local etag=`cf_md5 $filename`
+
+    cf_curl --request PUT --header "Content-Type: $content_type" \
+            --header "ETag: $etag" --upload-file $filename \
+            $CF_STORAGE_URL/$container/$obj_name
+}
+
+
+function cf_put_large_object() {
+    local container=$1
+    local filename=$2
+    local obj_name=$3
+    local content_type=$4
+    local size=$5
+
+    local left=$size
+    local segment_num=1
+    local skip=0
+
+    local segments_container=${obj_name}_segments
+    local obj_prefix="$segments_container/$obj_name/`date +%s`/$size/"
+
+    cf_mkdir ${segments_container}
+
+    local total_segments=`cf_compute_num_blocks $size $CF_SEGMENT_SIZE`
+
+    while [[ $left -gt 0 ]]; do
+        if [[ $left -ge $CF_SEGMENT_SIZE ]]; then
+            local length=$CF_SEGMENT_SIZE
+        else
+            local length=$left
+        fi
+
+        local nblocks=`cf_compute_num_blocks $length $DD_BLOCK_SIZE`
+
+        cf_log "Uploading segment $segment_num/$total_segments"
+        # FIXME: unify this with cf_curl
+        local code=$(
+            dd if=$filename bs=$DD_BLOCK_SIZE count=$nblocks skip=$skip \
+                2> /dev/null | \
+            curl --fail --write-out '%{http_code}' \
+                 --header "X-Auth-Token: $CF_AUTH_TOKEN" \
+                 --upload-file - --request PUT \
+                 --header "Transfer-Encoding: chunked" \
+                 --header "Content-Type: $content_type" \
+                 $CF_STORAGE_URL/$obj_prefix$(printf "%08d" $segment_num))
+
+        cf_check_code $code
+
+        cf_log ""
+
+        let left-=$length
+        let skip+=$nblocks
+        let segment_num++
+    done
+
+    cf_log "Uploading manifest for ${filename}"
+    cf_curl --data-binary '' --output /dev/null --request PUT \
+            --header "Content-Type: ${content_type}" \
+            --header "X-Object-Manifest: ${obj_prefix}" \
+            ${CF_STORAGE_URL}/${container}/${obj_name}
 }
 
 
@@ -312,11 +441,13 @@ function cf_put() {
         local content_type=`cf_autodetect_filetype $filename`
     fi
 
-    local etag=`cf_md5 $filename`
+    local size=`cf_size $filename`
 
-    cf_curl --request PUT --header "Content-Type: $content_type" \
-            --header "ETag: $etag" --upload-file $filename \
-            $CF_STORAGE_URL/$container/$obj_name
+    if [[ $size -gt $CF_SEGMENT_SIZE ]]; then
+        cf_put_large_object $container $filename $obj_name "$content_type" $size
+    else
+        cf_put_small_object $container $filename $obj_name "$content_type" $size
+    fi
 }
 
 
@@ -328,9 +459,7 @@ function cf_rm() {
         cf_usage 'rm <container> <object-name>'
     fi
 
-    OPT_QUIET=1
-
-    cf_curl --request DELETE $CF_STORAGE_URL/$container/$obj_name
+    cf_curl --silent --request DELETE $CF_STORAGE_URL/$container/$obj_name
 }
 
 
@@ -341,9 +470,7 @@ function cf_rmdir() {
         cf_usage 'rmdir <container>'
     fi
 
-    OPT_QUIET=1
-
-    cf_curl --request DELETE $CF_STORAGE_URL/$container
+    cf_curl --silent --request DELETE $CF_STORAGE_URL/$container
 }
 
 
@@ -353,12 +480,10 @@ function cf_stat() {
 
     local tmp_file=`cf_mktemp`
 
-    OPT_QUIET=1
-
     # NOTE: if we used --request HEAD instead of --head, curl would expect
     # Content-Length bytes to be sent as entity body which would cause a
     # timeout since HEAD requests don't result in a body
-    cf_curl --output /dev/null --head --dump-header $tmp_file \
+    cf_curl --silent --output /dev/null --head --dump-header $tmp_file \
             $CF_STORAGE_URL/$container/$obj_name
 
     cat $tmp_file

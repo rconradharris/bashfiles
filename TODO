@@ -1,8 +1,10 @@
-- Large-file upload support
-
 - Make container public
 
+- Move cf_init into functions
+
 - Ability to upload and download multiple files at once
+
+- Make Segment Size configurable?
 
 - Add CHANGELOG
 
@@ -10,3 +12,5 @@
     - Install base script
     - Install bash-completion hook (if possible)
     - Register man page
+
+- Switch to SLO large-files?

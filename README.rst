@@ -18,6 +18,9 @@ Features
 
 * ServiceNET support
 
+* Checksum validation
+
+* Large-Object Support (Dynamic Large Objects)
 
 Credit
 ======
