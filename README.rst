@@ -26,6 +26,8 @@ Features
 
 * Specify destination filename or output directly to stdout
 
+* Server-side Copy
+
 Credit
 ======
 

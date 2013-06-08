@@ -45,7 +45,7 @@ function cf_usage() {
 
 
 function cf_general_usage() {
-    cf_usage '<ls|get|mkdir|put|rm|rmdir|stat> [container] [object-name]'
+    cf_usage '<cp|get|ls|mkdir|put|rm|rmdir|stat> [container] [object-name]'
 }
 
 
@@ -271,6 +271,25 @@ function cf_curl() {
                       --header "X-Auth-Token: $CF_AUTH_TOKEN" "$@")
 
     cf_check_code $code
+}
+
+
+function cf_cp() {
+    local src_container=$1
+    local src_obj_name=$2
+    local dst_container=$3
+    local dst_obj_name=$4
+
+    if [[ -z $src_container || -z $src_obj_name
+                            || -z $dst_container \
+                            || -z $dst_obj_name ]]; then
+        cf_usage 'cp <src-container> <src-object-name>' \
+                 ' <dst-container> <dst-object-name>'
+    fi
+
+    cf_curl --silent --request COPY \
+            --header "Destination: /$dst_container/$dst_obj_name" \
+            $CF_STORAGE_URL/$src_container/$src_obj_name
 }
 
 
@@ -569,7 +588,7 @@ function cf_init() {
 function cf_bash_completer() {
     local cur=$1
     local prev=$2
-    local cmds='ls get mkdir put rm rmdir stat'
+    local cmds='cp get ls mkdir put rm rmdir stat'
 
     # Commands
     if [[ $cur = $PROG || $prev = $PROG  ]]; then
@@ -699,6 +718,8 @@ done
 shift $(($OPTIND - 1))
 
 case $1 in
+    cp)
+        cf_cp $2 $3 $4 $5;;
     ls)
         cf_ls $2;;
     get)

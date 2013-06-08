@@ -1,5 +1,6 @@
-- Add cp command
 - Add mv command
+
+- Add COMMANDS section to help
 
 - Ability to upload and download multiple files at once
 
