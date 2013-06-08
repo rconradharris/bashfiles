@@ -654,7 +654,7 @@ function cf_help() {
     cat <<EOF
 SYNOPSIS
 
-    $PROG [options] [container] [object-name]
+    $PROG [options] [commands] [container] [object-name]
 
 DESCRIPTION
 
@@ -670,14 +670,24 @@ DESCRIPTION
 
 OPTIONS
 
-    -h      Help
+    -h      Print help
     -f      Force (for rmdir this will remove all objects first)
     -o      Output filename ('-' to output to stdout)
     -q      Quiet mode (suppress progress meter)
     -s      Use Rackspace's ServiceNET network
     -t      Specify Content-Type for an upload (autodetect by default)
-    -v      Version
+    -v      Print version
 
+COMMANDS
+
+    cp      Server-side object copy
+    get     Download file
+    ls      List all containers or contents of a specific container
+    mkdir   Create a container
+    mv      Server-side object move
+    put     Upload file
+    rmdir   Remove a container (-f to clear it first)
+    stat    Account, container, or object information
 
 SETTINGS
 
@@ -695,6 +705,7 @@ FILES
     ~/.cloudfiles.sh-completion
 
 AUTHORS
+
     Rick Harris
     Mike Barton
     Chmouel Boudjnah
@@ -702,7 +713,7 @@ AUTHORS
 
 BUGS
 
-    Report at https://github.com/rconradharris/cloudfiles2.sh
+    Report to https://github.com/rconradharris/cloudfiles2.sh
 EOF
     exit 0
 }
