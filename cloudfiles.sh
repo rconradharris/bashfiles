@@ -533,14 +533,18 @@ function cf_put() {
 
 function cf_rm() {
     local container=$1
-    local obj_name=$2
+    shift
+    local obj_names=$@
 
-    if [[ -z $container || -z $obj_name ]]; then
-        cf_usage 'rm <container> <object-name>'
+    if [[ -z $container || -z $obj_names ]]; then
+        cf_usage 'rm <container> <object-names>'
     fi
 
     cf_init
-    cf_curl --silent --request DELETE $CF_STORAGE_URL/$container/$obj_name
+
+    for obj_name in $obj_names; do
+        cf_curl --silent --request DELETE $CF_STORAGE_URL/$container/$obj_name
+    done
 }
 
 
@@ -774,7 +778,7 @@ case $cmd in
     put)
         cf_put $@;;
     rm)
-        cf_rm $1 $2;;
+        cf_rm $@;;
     rmdir)
         cf_rmdir $1;;
     stat)
