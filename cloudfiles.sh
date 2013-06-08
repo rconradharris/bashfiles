@@ -1,16 +1,6 @@
 #!/bin/bash
-#
-# Simple script to upload/download from CloudFiles written in bash.
-#
-# Based entirely on Mike Barton's excellent cloudfiles.sh
-# (https://github.com/redbo/cloudfiles.sh) script w/ the following small
-# changes:
-#
-#       * Config file support (so you don't have to type credentials every
-#         time)
-#
-#       * Lowercase command names (easier to type)
-#
+# cloudfiles.sh - Mange CloudFiles via the command-line
+
 VERSION=0.1
 PROG=`basename $0`
 CONFIG=~/.$PROG
