@@ -155,6 +155,17 @@ function cf_retrieve_credentials() {
 }
 
 
+function cf_md5() {
+    if [[ -e /sbin/md5 ]]; then
+        # OSX
+        echo `md5 -q $1`
+    else
+        # Linux
+        echo `md5sum -q $1`
+    fi
+}
+
+
 function cf_mktemp() {
     echo `mktemp -t $PROG`
 }
@@ -251,7 +262,21 @@ function cf_get() {
     fi
 
     local filename=`basename $obj_name`
-    cf_curl --output $filename $CF_STORAGE_URL/$container/$obj_name
+    local tmp_headers=`cf_mktemp`
+
+    cf_curl --dump-header $tmp_headers --output $filename \
+            $CF_STORAGE_URL/$container/$obj_name
+
+    local etag=$(cat $tmp_headers | grep --ignore-case ^Etag \
+                                  | sed 's/.*: //' \
+                                  | tr -d "\r\n")
+
+    rm $tmp_headers
+
+    if [[ `cf_md5 $filename` != $etag ]]; then
+        rm $filename
+        cf_die "ERROR: Failed checksum validation."
+    fi
 }
 
 
@@ -284,8 +309,11 @@ function cf_put() {
         local content_type=`cf_autodetect_filetype $filename`
     fi
 
+    local etag=`cf_md5 $filename`
+
     cf_curl --request PUT --header "Content-Type: $content_type" \
-            --upload-file $filename $CF_STORAGE_URL/$container/$obj_name
+            --header "ETag: $etag" --upload-file $filename \
+            $CF_STORAGE_URL/$container/$obj_name
 }
 
 

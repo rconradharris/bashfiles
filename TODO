@@ -1,6 +1,10 @@
-- MD5 checksum verification
+- Download to tmpfile and move into place at last sec
 
 - Large-file upload support
+
+- Make container public
+
+- Ability to upload and download multiple files at once
 
 - Add CHANGELOG
 
