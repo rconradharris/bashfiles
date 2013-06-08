@@ -168,8 +168,8 @@ function cf_autodetect_filetype() {
 
 function cf_handle_snet() {
     if [[ $OPT_SERVICENET -eq 1 || $CF_SERVICENET -eq 1 ]]; then
-        CF_MGMT_URL=${CF_MGMT_URL/https:\/\//https://snet-}
-        CF_MGMT_URL=${CF_MGMT_URL/http:\/\//http://snet-}
+        CF_STORAGE_URL=${CF_STORAGE_URL/https:\/\//https://snet-}
+        CF_STORAGE_URL=${CF_STORAGE_URL/http:\/\//http://snet-}
     fi
 }
 
@@ -189,11 +189,11 @@ function cf_auth() {
                                       | sed 's/.*: //' \
                                       | tr -d "\r\n")
 
-    CF_MGMT_URL=$(echo "$auth_resp" | grep ^X-Storage-Url \
-                                    | sed 's/.*: //' \
-                                    | tr -d "\r\n")
+    CF_STORAGE_URL=$(echo "$auth_resp" | grep ^X-Storage-Url \
+                                       | sed 's/.*: //' \
+                                       | tr -d "\r\n")
 
-    if [[ -z $CF_AUTH_TOKEN || -z $CF_MGMT_URL ]]; then
+    if [[ -z $CF_AUTH_TOKEN || -z $CF_STORAGE_URL ]]; then
         echo "Unable to authenticate, set credentials in $CONFIG or" \
              " CF_USER and CF_API_KEY environment variables"
         exit 1
@@ -226,7 +226,7 @@ function cf_ls() {
 
     OPT_QUIET=1
 
-    cf_curl --output $tmp_file $CF_MGMT_URL/$container
+    cf_curl --output $tmp_file $CF_STORAGE_URL/$container
 
     cat $tmp_file
 
@@ -251,7 +251,7 @@ function cf_get() {
     fi
 
     local filename=`basename $obj_name`
-    cf_curl --output $filename $CF_MGMT_URL/$container/$obj_name
+    cf_curl --output $filename $CF_STORAGE_URL/$container/$obj_name
 }
 
 
@@ -264,7 +264,7 @@ function cf_mkdir() {
 
     OPT_QUIET=1
 
-    cf_curl --request PUT --upload-file /dev/null $CF_MGMT_URL/$container
+    cf_curl --request PUT --upload-file /dev/null $CF_STORAGE_URL/$container
 }
 
 
@@ -285,7 +285,7 @@ function cf_put() {
     fi
 
     cf_curl --request PUT --header "Content-Type: $content_type" \
-            --upload-file $filename $CF_MGMT_URL/$container/$obj_name
+            --upload-file $filename $CF_STORAGE_URL/$container/$obj_name
 }
 
 
@@ -299,7 +299,7 @@ function cf_rm() {
 
     OPT_QUIET=1
 
-    cf_curl --request DELETE $CF_MGMT_URL/$container/$obj_name
+    cf_curl --request DELETE $CF_STORAGE_URL/$container/$obj_name
 }
 
 
@@ -312,7 +312,7 @@ function cf_rmdir() {
 
     OPT_QUIET=1
 
-    cf_curl --request DELETE $CF_MGMT_URL/$container
+    cf_curl --request DELETE $CF_STORAGE_URL/$container
 }
 
 
@@ -328,7 +328,7 @@ function cf_stat() {
     # Content-Length bytes to be sent as entity body which would cause a
     # timeout since HEAD requests don't result in a body
     cf_curl --output /dev/null --head --dump-header $tmp_file \
-            $CF_MGMT_URL/$container/$obj_name
+            $CF_STORAGE_URL/$container/$obj_name
 
     cat $tmp_file
     rm $tmp_file

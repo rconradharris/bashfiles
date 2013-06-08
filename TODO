@@ -1,5 +1,3 @@
-- Rename CF_MGMT_URL to CF_STORAGE_URL
-
 - MD5 checksum verification
 
 - Large-file upload support
