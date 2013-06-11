@@ -431,6 +431,17 @@ function cmd_rm() {
 }
 
 
+function cmd_rmdir() {
+    local containers=$@
+
+    if [[ -z $containers ]]; then
+        bf_usage 'rmdir <containers>'
+    fi
+
+    cf_rmdir $containers
+}
+
+
 #############################################################################
 #                                                                           #
 #                               CloudFiles                                  #
@@ -752,12 +763,8 @@ function bf_clear_container() {
 }
 
 
-function bf_rmdir() {
+function cf_rmdir() {
     local containers=$@
-
-    if [[ -z $containers ]]; then
-        bf_usage 'rmdir <containers>'
-    fi
 
     for container in $containers; do
         if [[ $OPT_FORCE -eq 1 ]]; then
@@ -855,7 +862,7 @@ case $cmd in
     rm)
         cmd_rm $@;;
     rmdir)
-        bf_rmdir $@;;
+        cmd_rmdir $@;;
     stat)
         bf_stat $@;;
     *)
