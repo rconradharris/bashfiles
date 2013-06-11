@@ -444,14 +444,9 @@ function bf_put_small_object() {
     local obj_name=$3
     local content_type=$4
     local size=$5
+    local opt_silent=$6
 
     local etag=`bf_md5 $filename`
-
-    if [[ $OPT_QUIET -eq 1 ]]; then
-        local opt_silent=--silent
-    else
-        local opt_silent=
-    fi
 
     bf_curl $container/$obj_name --request PUT \
             --header "Content-Type: $content_type" \
@@ -465,16 +460,12 @@ function bf_put_large_object() {
     local obj_name=$3
     local content_type=$4
     local size=$5
+    local opt_silent=$6
 
     local left=$size
     local segment_num=1
     local skip=0
 
-    if [[ $OPT_QUIET -eq 1 ]]; then
-        local opt_silent=--silent
-    else
-        local opt_silent=
-    fi
     local seg_container=${obj_name}_segments
     local seg_prefix="$seg_container/$obj_name/`date +%s`/$size/"
 
@@ -529,6 +520,7 @@ function bf_put() {
     local filenames=$@
 
     local ret=0
+    local opt_silent=
 
     if [[ -z $container || -z $filenames ]]; then
         bf_usage 'put <container> <filenames>'
@@ -553,10 +545,16 @@ function bf_put() {
 
         local size=`bf_size $filename`
 
+        if [[ $OPT_QUIET -eq 1 ]]; then
+            opt_silent=--silent
+        fi
+
         if [[ $size -gt $CF_SEGMENT_SIZE ]]; then
-            bf_put_large_object $container $filename $obj_name "$content_type" $size
+            bf_put_large_object $container $filename $obj_name \
+                                "$content_type" $size $opt_silent
         else
-            bf_put_small_object $container $filename $obj_name "$content_type" $size
+            bf_put_small_object $container $filename $obj_name \
+                                "$content_type" $size $opt_silent
         fi
     done
 
