@@ -10,6 +10,8 @@ BUGS
     - cp
     - mv
 
+- Make SEGMENT_SIZE configurable as SETTING, change to CF_DEFAULT_SEGMENT_SIZE
+
 CLEANUP
 =======
 

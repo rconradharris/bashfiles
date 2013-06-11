@@ -1,17 +1,16 @@
 #!/bin/bash
-# bashfiles - Mange CloudFiles via the command-line
+# bashfiles - Manage CloudFiles via the command-line
 
-VERSION=0.1
-PROG=`basename $0`
-CONFIG=~/.$PROG
-COMPLETION_DIR=~/.$PROG-completion
-
-BF_INITIALIZED=0
+BF_VERSION=0.1
+BF_PROG=`basename $0`
+BF_CONFIG=~/.$BF_PROG
+BF_COMPLETION_DIR=~/.$BF_PROG-completion
 
 DEFAULT_CF_AUTH_URL_US=https://auth.api.rackspacecloud.com/v1.0
 DEFAULT_CF_AUTH_URL_UK=https://lon.auth.api.rackspacecloud.com/v1.0
 
 CF_SEGMENT_SIZE=5368709120
+CF_INITIALIZED=0
 DD_BLOCK_SIZE=1024
 
 OPT_CONTENT_TYPE=
@@ -21,6 +20,82 @@ OPT_QUIET=0
 OPT_SERVICENET=0
 
 CONST_ZERO_MD5=d41d8cd98f00b204e9800998ecf8427e
+
+
+#############################################################################
+#                                                                           #
+#                               Bashfiles                                   #
+#                                                                           #
+#############################################################################
+
+
+function bf_help() {
+    cat <<EOF
+SYNOPSIS
+
+    $BF_PROG [options] [commands] [container] [object-names]
+
+DESCRIPTION
+
+    $BF_PROG is a utility for working with Rackspace CloudFiles via the
+    command-line. $BF_PROG has minimal dependencies, requiring only bash, curl,
+    and a few other POSIX utilities.
+
+    You can pass settings to $BF_PROG via environment variables or by defining a
+    configuration file located at `~/.bashfiles`.
+
+    $BF_PROG supports bash-completion against commands, container and
+    object-names, and can be enabled with the BF_SMART_COMPLETION=1 setting.
+
+OPTIONS
+
+    -h      Print help
+    -f      Force
+    -o      Output filename ('-' to output to stdout)
+    -q      Quiet mode (suppress progress meter)
+    -s      Use Rackspace's ServiceNET network
+    -t      Specify Content-Type for an upload (autodetect by default)
+    -v      Print version
+
+COMMANDS
+
+    cp      Server-side object copy
+    get     Download file (-f overwrites existing file, if present)
+    ls      List all containers or contents of a specific container
+    mkdir   Create a container
+    mv      Server-side object move
+    put     Upload file
+    rmdir   Remove a container (-f to clear it first)
+    stat    Account, container, or object information
+
+SETTINGS
+
+    CF_USER         CloudFiles username
+    CF_API_KEY      CloudFiles API Key
+    CF_AUTH_URL     CloudFiles authentication URL
+    CF_SERVICENET   Use Rackspace's ServiceNET network
+    BF_SMART_COMPLETION
+                    Whether to enable bash completion against object and
+                    container-names
+
+FILES
+
+    ~/.bashfiles
+    ~/.bashfiles-completion
+
+AUTHORS
+
+    Rick Harris
+    Mike Barton
+    Chmouel Boudjnah
+    Jay Payne
+
+BUGS
+
+    Report to https://github.com/rconradharris/cloudfiles2.sh
+EOF
+    exit 0
+}
 
 
 function bf_log() {
@@ -46,8 +121,14 @@ function bf_die() {
 }
 
 
+function bf_version() {
+    echo $BF_VERSION
+    exit 0
+}
+
+
 function bf_usage() {
-    bf_die "usage: $PROG [-fhqstv] $@"
+    bf_die "usage: $BF_PROG [-fhqstv] $@"
 }
 
 
@@ -57,8 +138,8 @@ function bf_general_usage() {
 
 
 function bf_load_config() {
-    if [[ -r $CONFIG ]]; then
-        source $CONFIG
+    if [[ -r $BF_CONFIG ]]; then
+        source $BF_CONFIG
     fi
 }
 
@@ -97,15 +178,15 @@ function bf_ask_with_default() {
 
 
 function bf_save_config() {
-    if [[ -e $CONFIG ]]; then
-        bf_warn "Cannot save credentials, file $CONFIG already exists"
+    if [[ -e $BF_CONFIG ]]; then
+        bf_warn "Cannot save credentials, file $BF_CONFIG already exists"
         return
     fi
-    cat > $CONFIG <<EOF
+    cat > $BF_CONFIG <<EOF
 CF_USER=$CF_USER
 CF_API_KEY=$CF_API_KEY
 CF_AUTH_URL=$CF_AUTH_URL
-CF_SMART_COMPLETION=$CF_SMART_COMPLETION
+BF_SMART_COMPLETION=$BF_SMART_COMPLETION
 CF_SERVICENET=$CF_SERVICENET
 EOF
 }
@@ -156,14 +237,14 @@ function bf_retrieve_credentials() {
     if [[ $creds_updated -eq 1 ]]; then
         # Only ask about smart completion if we were already asking for USER
         # or API_KEY
-        if [[ -z $CF_SMART_COMPLETION ]]; then
+        if [[ -z $BF_SMART_COMPLETION ]]; then
             local smart_completion=$(bf_ask_with_default y \
                          'Enable container and object name completion [Y/n]? ')
 
             if [[ $smart_completion = 'y' || $smart_completion = 'Y' ]]; then
-                CF_SMART_COMPLETION=1
+                BF_SMART_COMPLETION=1
             else
-                CF_SMART_COMPLETION=0
+                BF_SMART_COMPLETION=0
             fi
         fi
 
@@ -201,7 +282,7 @@ function bf_urlencode() {
 
 
 function bf_mktemp() {
-    echo `mktemp -t $PROG`
+    echo `mktemp -t $BF_PROG`
 }
 
 
@@ -239,6 +320,13 @@ function bf_autodetect_filetype() {
 }
 
 
+#############################################################################
+#                                                                           #
+#                               CloudFiles                                  #
+#                                                                           #
+#############################################################################
+
+
 function bf_handle_snet() {
     if [[ $OPT_SERVICENET -eq 1 || $CF_SERVICENET -eq 1 ]]; then
         CF_STORAGE_URL=${CF_STORAGE_URL/https:\/\//https://snet-}
@@ -267,7 +355,7 @@ function bf_auth() {
                                        | tr -d "\r\n")
 
     if [[ -z $CF_AUTH_TOKEN || -z $CF_STORAGE_URL ]]; then
-        echo "Unable to authenticate, set credentials in $CONFIG or" \
+        echo "Unable to authenticate, set credentials in $BF_CONFIG or" \
              " CF_USER and CF_API_KEY environment variables"
         exit 1
     fi
@@ -323,11 +411,11 @@ function bf_ls() {
 
     cat $tmp_file
 
-    if [[ $CF_SMART_COMPLETION -eq 1 ]]; then
+    if [[ $BF_SMART_COMPLETION -eq 1 ]]; then
         if [[ -z $container ]]; then
-            mv $tmp_file $COMPLETION_DIR/container-names
+            mv $tmp_file $BF_COMPLETION_DIR/container-names
         else
-            mv $tmp_file $COMPLETION_DIR/$container-object-names
+            mv $tmp_file $BF_COMPLETION_DIR/$container-object-names
         fi
     else
         rm $tmp_file
@@ -634,93 +722,18 @@ function bf_stat() {
 
 
 function bf_init() {
-    if [[ $BF_INITIALIZED -eq 1 ]]; then
+    if [[ $CF_INITIALIZED -eq 1 ]]; then
         return
     fi
 
     bf_retrieve_credentials
     bf_auth
 
-    if [[ $CF_SMART_COMPLETION -eq 1 && ! -d $COMPLETION_DIR ]]; then
-        mkdir $COMPLETION_DIR
+    if [[ $BF_SMART_COMPLETION -eq 1 && ! -d $BF_COMPLETION_DIR ]]; then
+        mkdir $BF_COMPLETION_DIR
     fi
 
-    BF_INITIALIZED=1
-}
-
-
-function bf_version() {
-    echo $VERSION
-    exit 0
-}
-
-
-function bf_help() {
-    cat <<EOF
-SYNOPSIS
-
-    $PROG [options] [commands] [container] [object-names]
-
-DESCRIPTION
-
-    $PROG is a utility for working with Rackspace CloudFiles via the
-    command-line. $PROG has minimal dependencies, requiring only bash, curl,
-    and a few other POSIX utilities.
-
-    You can pass settings to $PROG via environment variables or by defining a
-    configuration file located at `~/.bashfiles`.
-
-    $PROG supports bash-completion against commands, container and
-    object-names, and can be enabled with the CF_SMART_COMPLETION=1 setting.
-
-OPTIONS
-
-    -h      Print help
-    -f      Force
-    -o      Output filename ('-' to output to stdout)
-    -q      Quiet mode (suppress progress meter)
-    -s      Use Rackspace's ServiceNET network
-    -t      Specify Content-Type for an upload (autodetect by default)
-    -v      Print version
-
-COMMANDS
-
-    cp      Server-side object copy
-    get     Download file (-f overwrites existing file, if present)
-    ls      List all containers or contents of a specific container
-    mkdir   Create a container
-    mv      Server-side object move
-    put     Upload file
-    rmdir   Remove a container (-f to clear it first)
-    stat    Account, container, or object information
-
-SETTINGS
-
-    CF_USER         CloudFiles username
-    CF_API_KEY      CloudFiles API Key
-    CF_AUTH_URL     CloudFiles authentication URL
-    CF_SERVICENET   Use Rackspace's ServiceNET network
-    CF_SMART_COMPLETION 
-                    Whether to enable bash completion against object and
-                    container-names
-
-FILES
-
-    ~/.bashfiles
-    ~/.bashfiles-completion
-
-AUTHORS
-
-    Rick Harris
-    Mike Barton
-    Chmouel Boudjnah
-    Jay Payne
-
-BUGS
-
-    Report to https://github.com/rconradharris/cloudfiles2.sh
-EOF
-    exit 0
+    CF_INITIALIZED=1
 }
 
 
