@@ -17,6 +17,8 @@ CLEANUP
 
 - Better separate bashfiles core from CloudFiles driver
 
+- Replace bf_error with just bf_die
+
 FEATURES
 ========
 

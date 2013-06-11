@@ -405,6 +405,19 @@ function cmd_mv() {
 }
 
 
+function cmd_put() {
+    local container=$1
+    shift
+    local filenames=$@
+
+    if [[ -z $container || -z $filenames ]]; then
+        bf_usage 'put <container> <filenames>'
+    fi
+
+    cf_put $container $filenames
+}
+
+
 #############################################################################
 #                                                                           #
 #                               CloudFiles                                  #
@@ -577,7 +590,7 @@ function cf_mv() {
 }
 
 
-function bf_put_small_object() {
+function cf_put_small_object() {
     local container=$1
     local filename=$2
     local obj_name=$3
@@ -593,7 +606,7 @@ function bf_put_small_object() {
 }
 
 
-function bf_put_large_object() {
+function cf_put_large_object() {
     local container=$1
     local filename=$2
     local obj_name=$3
@@ -654,7 +667,7 @@ function bf_put_large_object() {
 }
 
 
-function bf_put() {
+function cf_put() {
     local container=$1
     shift
     local filenames=$@
@@ -662,8 +675,8 @@ function bf_put() {
     local ret=0
     local opt_silent=
 
-    if [[ -z $container || -z $filenames ]]; then
-        bf_usage 'put <container> <filenames>'
+    if [[ $OPT_QUIET -eq 1 ]]; then
+        opt_silent=--silent
     fi
 
     for filename in $filenames; do
@@ -683,15 +696,11 @@ function bf_put() {
 
         local size=`bf_size $filename`
 
-        if [[ $OPT_QUIET -eq 1 ]]; then
-            opt_silent=--silent
-        fi
-
         if [[ $size -gt $CF_SEGMENT_SIZE ]]; then
-            bf_put_large_object $container $filename $obj_name \
+            cf_put_large_object $container $filename $obj_name \
                                 "$content_type" $size $opt_silent
         else
-            bf_put_small_object $container $filename $obj_name \
+            cf_put_small_object $container $filename $obj_name \
                                 "$content_type" $size $opt_silent
         fi
     done
@@ -833,7 +842,7 @@ case $cmd in
     mv)
         cmd_mv $@;;
     put)
-        bf_put $@;;
+        cmd_put $@;;
     rm)
         bf_rm $@;;
     rmdir)
