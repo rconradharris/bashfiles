@@ -103,11 +103,6 @@ function bf_warn() {
 }
 
 
-function bf_error() {
-    echo "error: $@" >&2
-}
-
-
 function bf_die() {
     echo "$@" >&2
     exit 1
@@ -632,11 +627,10 @@ function cf_put() {
     shift
     local filenames=$@
 
-    local ret=0
-    local opt_silent=
-
     if [[ $OPT_QUIET -eq 1 ]]; then
-        opt_silent=--silent
+        local opt_silent=--silent
+    else
+        local opt_silent=
     fi
 
     if [[ -z $CF_SEGMENT_SIZE ]];  then
@@ -647,9 +641,7 @@ function cf_put() {
 
     for filename in $filenames; do
         if [[ ! -e $filename ]]; then
-            bf_error "File not found: $filename"
-            ret=1
-            continue
+            bf_die "File not found: $filename"
         fi
 
         local obj_name=`basename $filename`
@@ -672,8 +664,6 @@ function cf_put() {
                                 $segment_size
         fi
     done
-
-    return $ret
 }
 
 

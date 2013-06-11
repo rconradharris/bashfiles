@@ -13,8 +13,6 @@ BUGS
 CLEANUP
 =======
 
-- Replace bf_error with just bf_die
-
 FEATURES
 ========
 
