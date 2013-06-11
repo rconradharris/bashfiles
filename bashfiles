@@ -377,6 +377,17 @@ function cmd_ls() {
 }
 
 
+function cmd_mkdir() {
+    local containers=$@
+
+    if [[ -z $containers ]]; then
+        bf_usage 'mkdir <containers>'
+    fi
+
+    cf_mkdir $containers
+}
+
+
 #############################################################################
 #                                                                           #
 #                               CloudFiles                                  #
@@ -528,12 +539,8 @@ function cf_get() {
 }
 
 
-function bf_mkdir() {
+function cf_mkdir() {
     local containers=$@
-
-    if [[ -z $containers ]]; then
-        bf_usage 'mkdir <containers>'
-    fi
 
     for container in $containers; do
         bf_curl $container --silent --output /dev/null --request PUT \
@@ -812,7 +819,7 @@ case $cmd in
     get)
         cmd_get $@;;
     mkdir)
-        bf_mkdir $@;;
+        cmd_mkdir $@;;
     mv)
         bf_mv $@;;
     put)
