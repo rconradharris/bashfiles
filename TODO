@@ -1,8 +1,6 @@
 BUGS
 ====
 
-- Add arg checking for cmd_stat
-
 - What to do with -o with multiple files on get
 
 - rmdir: Handle pagination for clear_container

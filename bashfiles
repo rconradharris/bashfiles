@@ -360,7 +360,12 @@ function cmd_stat() {
     shift
     local obj_names=$@
 
-    cf_stat $container $obj_names
+    # No arg checking because we can accept any number of arguments:
+    #
+    #    0 - Account statistics
+    #    1 - Container statistics
+    # >= 2 - Object statistics
+    cf_stat $container "$obj_names"
 }
 
 
@@ -715,23 +720,36 @@ function cf_rmdir() {
 }
 
 
+function cf_stat_thing() {
+    local thing=$1
+
+    local tmp_file=`bf_mktemp`
+
+    # NOTE: if we used --request HEAD instead of --head, curl would
+    # expect Content-Length bytes to be sent as entity body which
+    # would cause a timeout since HEAD requests don't result in a body
+    cf_curl "$thing" --silent --output /dev/null --head \
+            --dump-header $tmp_file
+
+    cat $tmp_file
+    rm $tmp_file
+}
+
+
 function cf_stat() {
     local container=$1
     shift
     local obj_names=$@
 
-    for obj_name in $obj_names; do
-        local tmp_file=`bf_mktemp`
-
-        # NOTE: if we used --request HEAD instead of --head, curl would expect
-        # Content-Length bytes to be sent as entity body which would cause a
-        # timeout since HEAD requests don't result in a body
-        cf_curl $container/$obj_name --silent --output /dev/null --head \
-                --dump-header $tmp_file
-
-        cat $tmp_file
-        rm $tmp_file
-    done
+    if [[ -z $obj_names ]]; then
+        # Account or Container
+        cf_stat_thing "$container"
+    else
+        # Objects
+        for obj_name in $obj_names; do
+            cf_stat_thing $container/$obj_name
+        done
+    fi
 }
 
 
