@@ -1,5 +1,5 @@
 #!/bin/bash
-# cloudfiles.sh - Mange CloudFiles via the command-line
+# bashfiles - Mange CloudFiles via the command-line
 
 VERSION=0.1
 PROG=`basename $0`
@@ -673,7 +673,7 @@ DESCRIPTION
     and a few other POSIX utilities.
 
     You can pass settings to $PROG via environment variables or by defining a
-    configuration file located at ~/.cloudfiles.sh.
+    configuration file located at `~/.bashfiles`.
 
     $PROG supports bash-completion against commands, container and
     object-names, and can be enabled with the CF_SMART_COMPLETION=1 setting.
@@ -711,8 +711,8 @@ SETTINGS
 
 FILES
 
-    ~/.cloudfiles.sh
-    ~/.cloudfiles.sh-completion
+    ~/.bashfiles
+    ~/.bashfiles-completion
 
 AUTHORS
 

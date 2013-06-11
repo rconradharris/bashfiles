@@ -24,8 +24,6 @@ function _cf_match() {
 function _cf_completer() {
     COMPREPLY=()
 
-    local PROG=cloudfiles.sh
-    local COMPLETION_DIR=~/.$PROG-completion
     local OPTIONS=(-f -h -o -q -s -t -v)
     local COMMANDS=(cp get ls mkdir mv put rm rmdir stat)
 
@@ -35,6 +33,7 @@ function _cf_completer() {
     local cmd=COMP_WORDS[cmd_idx]}
     local container_idx=`expr $cmd_idx + 1`
 
+    local COMPLETION_DIR=~/.bashfiles-completion
     local container_fname=$COMPLETION_DIR/container-names
     local object_fname=$COMPLETION_DIR/${COMP_WORDS[container_idx]}-object-names
 
@@ -63,4 +62,4 @@ function _cf_completer() {
 }
 
 
-complete -F _cf_completer cloudfiles.sh
+complete -F _cf_completer bashfiles
