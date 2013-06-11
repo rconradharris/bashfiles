@@ -344,6 +344,19 @@ function cmd_cp() {
 }
 
 
+function cmd_get() {
+    local container=$1
+    shift
+    local obj_names=$@
+
+    if [[ -z $container || -z $obj_names ]]; then
+        bf_usage 'get <container> <object-names>'
+    fi
+
+    cf_get $container $obj_names
+}
+
+
 function cmd_ls() {
     local container=$1
     local tmp_file=`bf_mktemp`
@@ -448,13 +461,15 @@ function cf_ls() {
 }
 
 
-function bf_get() {
+function cf_get() {
     local container=$1
     shift
     local obj_names=$@
 
-    if [[ -z $container || -z $obj_names ]]; then
-        bf_usage 'get <container> <object-names>'
+    if [[ $OPT_QUIET -eq 1 ]]; then
+        local opt_silent=--silent
+    else
+        local opt_silent=
     fi
 
     for obj_name in $obj_names; do
@@ -477,13 +492,6 @@ function bf_get() {
         fi
 
         local output=.$filename.download
-
-        if [[ $OPT_QUIET -eq 1 ]]; then
-            local opt_silent=--silent
-        else
-            local opt_silent=
-        fi
-
         local tmp_headers=`bf_mktemp`
 
         bf_curl $container/$obj_name $opt_silent --dump-header $tmp_headers \
@@ -802,7 +810,7 @@ case $cmd in
     ls)
         cmd_ls $@;;
     get)
-        bf_get $@;;
+        cmd_get $@;;
     mkdir)
         bf_mkdir $@;;
     mv)
