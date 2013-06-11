@@ -322,6 +322,30 @@ function bf_autodetect_filetype() {
 
 #############################################################################
 #                                                                           #
+#                               Commands                                    #
+#                                                                           #
+#############################################################################
+
+
+function cmd_cp() {
+    local src_container=$1
+    local src_obj_name=$2
+    local dst_container=$3
+    local dst_obj_name=$4
+
+    if [[ -z $src_container || -z $src_obj_name
+                            || -z $dst_container \
+                            || -z $dst_obj_name ]]; then
+        bf_usage 'cp <src-container> <src-object-name>' \
+                 ' <dst-container> <dst-object-name>'
+    fi
+
+    cf_cp $src_container $src_obj_name $dst_container $dst_obj_name
+}
+
+
+#############################################################################
+#                                                                           #
 #                               CloudFiles                                  #
 #                                                                           #
 #############################################################################
@@ -385,18 +409,11 @@ function bf_curl() {
 }
 
 
-function bf_cp() {
+function cf_cp() {
     local src_container=$1
     local src_obj_name=$2
     local dst_container=$3
     local dst_obj_name=$4
-
-    if [[ -z $src_container || -z $src_obj_name
-                            || -z $dst_container \
-                            || -z $dst_obj_name ]]; then
-        bf_usage 'cp <src-container> <src-object-name>' \
-                 ' <dst-container> <dst-object-name>'
-    fi
 
     bf_curl $src_container/$src_obj_name --silent --request COPY \
             --header "Destination: /$dst_container/$dst_obj_name"
@@ -773,7 +790,7 @@ shift
 
 case $cmd in
     cp)
-        bf_cp $@;;
+        cmd_cp $@;;
     ls)
         bf_ls $@;;
     get)
