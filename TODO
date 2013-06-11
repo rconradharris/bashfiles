@@ -5,8 +5,10 @@ BUGS
 
 - rmdir: Handle pagination for clear_container
 
-- Do not overwrite files on get unless -f is set
-- Do not overwrite objects on put unless -f is set
+- Do not overwrite objects unless -f is set
+    - put
+    - cp
+    - mv
 
 CLEANUP
 =======
@@ -15,6 +17,8 @@ CLEANUP
 
 FEATURES
 ========
+
+- Lazy-init
 
 - Make container public
 

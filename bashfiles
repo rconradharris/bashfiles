@@ -358,6 +358,8 @@ function bf_get() {
                  --header "X-Auth-Token: $CF_AUTH_TOKEN" \
                  $CF_STORAGE_URL/$container/$obj_name
             continue
+        elif [[ -e $filename && $OPT_FORCE -ne 1 ]]; then
+            bf_die "File '$filename' already exists"
         fi
 
         local output=.$filename.download
@@ -679,7 +681,7 @@ DESCRIPTION
 OPTIONS
 
     -h      Print help
-    -f      Force (for rmdir this will remove all objects first)
+    -f      Force
     -o      Output filename ('-' to output to stdout)
     -q      Quiet mode (suppress progress meter)
     -s      Use Rackspace's ServiceNET network
@@ -689,7 +691,7 @@ OPTIONS
 COMMANDS
 
     cp      Server-side object copy
-    get     Download file
+    get     Download file (-f overwrites existing file, if present)
     ls      List all containers or contents of a specific container
     mkdir   Create a container
     mv      Server-side object move
