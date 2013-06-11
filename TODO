@@ -1,8 +1,6 @@
 BUGS
 ====
 
-- Make CloudFiles const start with CF_
-
 - Add arg checking for cmd_stat
 
 - What to do with -o with multiple files on get
@@ -13,8 +11,6 @@ BUGS
     - put
     - cp
     - mv
-
-- Make SEGMENT_SIZE configurable as SETTING, change to CF_DEFAULT_SEGMENT_SIZE
 
 CLEANUP
 =======

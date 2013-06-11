@@ -6,8 +6,6 @@ BF_PROG=`basename $0`
 BF_CONFIG=~/.$BF_PROG
 BF_COMPLETION_DIR=~/.$BF_PROG-completion
 
-DD_BLOCK_SIZE=1024
-
 OPT_CONTENT_TYPE=
 OPT_FORCE=0
 OPT_OUTPUT=
@@ -373,9 +371,10 @@ function cmd_stat() {
 #############################################################################
 
 
-DEFAULT_CF_AUTH_URL_US=https://auth.api.rackspacecloud.com/v1.0
-DEFAULT_CF_AUTH_URL_UK=https://lon.auth.api.rackspacecloud.com/v1.0
-CF_SEGMENT_SIZE=5368709120
+CF_DEFAULT_AUTH_URL_US=https://auth.api.rackspacecloud.com/v1.0
+CF_DEFAULT_AUTH_URL_UK=https://lon.auth.api.rackspacecloud.com/v1.0
+CF_DEFAULT_SEGMENT_SIZE=5368709120
+CF_DD_BLOCK_SIZE=1024
 CF_INITIALIZED=0
 
 
@@ -389,7 +388,7 @@ function cf_handle_snet() {
 
 function cf_auth() {
     if [[ -z $CF_AUTH_URL ]]; then
-        CF_AUTH_URL=$DEFAULT_CF_AUTH_URL_US
+        CF_AUTH_URL=$CF_DEFAULT_AUTH_URL_US
     fi
 
     local auth_resp=$(
@@ -551,6 +550,7 @@ function cf_put_small_object() {
     local content_type=$4
     local size=$5
     local opt_silent=$6
+    local segment_size=$7
 
     local etag=`bf_md5 $filename`
 
@@ -567,6 +567,7 @@ function cf_put_large_object() {
     local content_type=$4
     local size=$5
     local opt_silent=$6
+    local segment_size=$7
 
     local left=$size
     local segment_num=1
@@ -577,16 +578,16 @@ function cf_put_large_object() {
 
     bf_mkdir ${seg_container}
 
-    local total_segments=`bf_compute_num_blocks $size $CF_SEGMENT_SIZE`
+    local total_segments=`bf_compute_num_blocks $size $segment_size`
 
     while [[ $left -gt 0 ]]; do
-        if [[ $left -ge $CF_SEGMENT_SIZE ]]; then
-            local length=$CF_SEGMENT_SIZE
+        if [[ $left -ge $segment_size ]]; then
+            local length=$segment_size
         else
             local length=$left
         fi
 
-        local nblocks=`bf_compute_num_blocks $length $DD_BLOCK_SIZE`
+        local nblocks=`bf_compute_num_blocks $length $CF_DD_BLOCK_SIZE`
 
         bf_log "Uploading segment $segment_num/$total_segments"
 
@@ -595,7 +596,7 @@ function cf_put_large_object() {
         local seg_name="$seg_prefix$(printf '%08d' $segment_num)"
         seg_name=`bf_urlencode $seg_name`
         local code=$(
-            dd if=$filename bs=$DD_BLOCK_SIZE count=$nblocks skip=$skip \
+            dd if=$filename bs=$CF_DD_BLOCK_SIZE count=$nblocks skip=$skip \
                 2> /dev/null | \
             curl --fail --write-out '%{http_code}' $opt_silent \
                  --header "X-Auth-Token: $CF_AUTH_TOKEN" \
@@ -633,6 +634,12 @@ function cf_put() {
         opt_silent=--silent
     fi
 
+    if [[ -z $CF_SEGMENT_SIZE ]];  then
+        local segment_size=$CF_DEFAULT_SEGMENT_SIZE
+    else
+        local segment_size=$CF_SEGMENT_SIZE
+    fi
+
     for filename in $filenames; do
         if [[ ! -e $filename ]]; then
             bf_error "File not found: $filename"
@@ -650,12 +657,14 @@ function cf_put() {
 
         local size=`bf_size $filename`
 
-        if [[ $size -gt $CF_SEGMENT_SIZE ]]; then
+        if [[ $size -gt $segment_size ]]; then
             cf_put_large_object $container $filename $obj_name \
-                                "$content_type" $size $opt_silent
+                                "$content_type" $size $opt_silent \
+                                $segment_size
         else
             cf_put_small_object $container $filename $obj_name \
-                                "$content_type" $size $opt_silent
+                                "$content_type" $size $opt_silent \
+                                $segment_size
         fi
     done
 
@@ -765,9 +774,9 @@ function cf_retrieve_credentials() {
                          'Location or Auth URL: [<url>/uk/US]: ')
 
         if [[ $auth_url == 'uk' || $auth_url == 'UK' ]]; then
-            CF_AUTH_URL=$DEFAULT_CF_AUTH_URL_UK
+            CF_AUTH_URL=$CF_DEFAULT_AUTH_URL_UK
         elif [[ $auth_url == 'us' || $auth_url == 'US' ]]; then
-            CF_AUTH_URL=$DEFAULT_CF_AUTH_URL_US
+            CF_AUTH_URL=$CF_DEFAULT_AUTH_URL_US
         else
             CF_AUTH_URL=$auth_url
         fi
