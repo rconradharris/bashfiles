@@ -21,47 +21,47 @@ OPT_SERVICENET=0
 CONST_ZERO_MD5=d41d8cd98f00b204e9800998ecf8427e
 
 
-function cf_log() {
+function bf_log() {
     if [[ $OPT_QUIET -eq 0 ]]; then
         echo "$@" >&2
     fi
 }
 
 
-function cf_warn() {
+function bf_warn() {
     echo "warning: $@" >&2
 }
 
 
-function cf_error() {
+function bf_error() {
     echo "error: $@" >&2
 }
 
 
-function cf_die() {
+function bf_die() {
     echo "$@" >&2
     exit 1
 }
 
 
-function cf_usage() {
-    cf_die "usage: $PROG [-fhqstv] $@"
+function bf_usage() {
+    bf_die "usage: $PROG [-fhqstv] $@"
 }
 
 
-function cf_general_usage() {
-    cf_usage '<cp|get|ls|mkdir|mv|put|rm|rmdir|stat> [container] [object-name]'
+function bf_general_usage() {
+    bf_usage '<cp|get|ls|mkdir|mv|put|rm|rmdir|stat> [container] [object-name]'
 }
 
 
-function cf_load_config() {
+function bf_load_config() {
     if [[ -r $CONFIG ]]; then
         source $CONFIG
     fi
 }
 
 
-function cf_ask() {
+function bf_ask() {
     local question=$1
 
     read -p "$question"
@@ -69,22 +69,22 @@ function cf_ask() {
 }
 
 
-function cf_ask_required() {
+function bf_ask_required() {
     local var=$1
     local question=$2
-    local reply=`cf_ask "$question"`
+    local reply=`bf_ask "$question"`
     if [[ -z $reply ]]; then
-        cf_die 'Aborted'
+        bf_die 'Aborted'
     fi
     eval $var="'$reply'"
 }
 
 
-function cf_ask_with_default() {
+function bf_ask_with_default() {
     local default=$1
     local question=$2
 
-    local reply=`cf_ask "$question"`
+    local reply=`bf_ask "$question"`
 
     if [[ -z $reply ]]; then
         reply=$default
@@ -94,9 +94,9 @@ function cf_ask_with_default() {
 }
 
 
-function cf_save_config() {
+function bf_save_config() {
     if [[ -e $CONFIG ]]; then
-        cf_warn "Cannot save credentials, file $CONFIG already exists"
+        bf_warn "Cannot save credentials, file $CONFIG already exists"
         return
     fi
     cat > $CONFIG <<EOF
@@ -109,27 +109,27 @@ EOF
 }
 
 
-function cf_retrieve_credentials() {
+function bf_retrieve_credentials() {
     local creds_updated=0
 
     # 1. Check config file
     # 2. Check environment
     # 3. Ask user
     # 4. Optional: Save credentials to config file
-    cf_load_config
+    bf_load_config
 
     if [[ -z $CF_USER ]]; then
-        cf_ask_required 'CF_USER' 'CloudFiles Username: '
+        bf_ask_required 'CF_USER' 'CloudFiles Username: '
         creds_updated=1
     fi
 
     if [[ -z $CF_API_KEY ]]; then
-        cf_ask_required 'CF_API_KEY' 'CloudFiles API Key: '
+        bf_ask_required 'CF_API_KEY' 'CloudFiles API Key: '
         creds_updated=1
     fi
 
     if [[ -z $CF_AUTH_URL ]]; then
-        local auth_url=$(cf_ask_with_default us \
+        local auth_url=$(bf_ask_with_default us \
                          'Location or Auth URL: [<url>/uk/US]: ')
 
         if [[ $auth_url == 'uk' || $auth_url == 'UK' ]]; then
@@ -142,7 +142,7 @@ function cf_retrieve_credentials() {
     fi
 
     if [[ -z $CF_SERVICENET ]]; then
-        local snet=`cf_ask_with_default n 'Use ServiceNET [y/N]? '`
+        local snet=`bf_ask_with_default n 'Use ServiceNET [y/N]? '`
 
         if [[ $snet = 'y' || $snet = 'Y' ]]; then
             CF_SERVICENET=1
@@ -155,7 +155,7 @@ function cf_retrieve_credentials() {
         # Only ask about smart completion if we were already asking for USER
         # or API_KEY
         if [[ -z $CF_SMART_COMPLETION ]]; then
-            local smart_completion=$(cf_ask_with_default y \
+            local smart_completion=$(bf_ask_with_default y \
                          'Enable container and object name completion [Y/n]? ')
 
             if [[ $smart_completion = 'y' || $smart_completion = 'Y' ]]; then
@@ -165,16 +165,16 @@ function cf_retrieve_credentials() {
             fi
         fi
 
-        local save_creds=`cf_ask_with_default N 'Save settings [y/N]? '`
+        local save_creds=`bf_ask_with_default N 'Save settings [y/N]? '`
 
         if [[ $save_creds = 'y' || $save_creds = 'Y' ]]; then
-            cf_save_config
+            bf_save_config
         fi
     fi
 }
 
 
-function cf_md5() {
+function bf_md5() {
     if [[ -e /sbin/md5 ]]; then
         # OSX
         echo `md5 -q $1`
@@ -185,7 +185,7 @@ function cf_md5() {
 }
 
 
-function cf_urlencode() {
+function bf_urlencode() {
     # http://gimi.name/snippets/urlencode-and-urldecode-for-bash-scripting-using-sed/
     echo "$1" | sed -e 's/%/%25/g;s/ /%20/g;s/ /%09/g;s/!/%21/g;s/"/%22/g;' \
                     -e 's/#/%23/g;s/\$/%24/g;s/\&/%26/g;s/'\''/%27/g;'\
@@ -198,12 +198,12 @@ function cf_urlencode() {
 }
 
 
-function cf_mktemp() {
+function bf_mktemp() {
     echo `mktemp -t $PROG`
 }
 
 
-function cf_size() {
+function bf_size() {
     local filename=$1
 
     if stat -c 2>&1 | grep -q illegal; then
@@ -216,7 +216,7 @@ function cf_size() {
 }
 
 
-function cf_compute_num_blocks() {
+function bf_compute_num_blocks() {
     local total_size=$1
     local block_size=$2
 
@@ -231,13 +231,13 @@ function cf_compute_num_blocks() {
 }
 
 
-function cf_autodetect_filetype() {
+function bf_autodetect_filetype() {
     local filename=$1
     echo `file --brief --mime $filename`
 }
 
 
-function cf_handle_snet() {
+function bf_handle_snet() {
     if [[ $OPT_SERVICENET -eq 1 || $CF_SERVICENET -eq 1 ]]; then
         CF_STORAGE_URL=${CF_STORAGE_URL/https:\/\//https://snet-}
         CF_STORAGE_URL=${CF_STORAGE_URL/http:\/\//http://snet-}
@@ -245,7 +245,7 @@ function cf_handle_snet() {
 }
 
 
-function cf_auth() {
+function bf_auth() {
     if [[ -z $CF_AUTH_URL ]]; then
         CF_AUTH_URL=$DEFAULT_CF_AUTH_URL_US
     fi
@@ -270,30 +270,30 @@ function cf_auth() {
         exit 1
     fi
 
-    cf_handle_snet
+    bf_handle_snet
 }
 
 
-function cf_check_code() {
+function bf_check_code() {
     local code=$1
 
     if [[ $code -lt 200 || $code -gt 299 ]]; then
-        cf_die "Invalid response code: $code"
+        bf_die "Invalid response code: $code"
     fi
 }
 
 
-function cf_curl() {
-    local url=`cf_urlencode $1`
+function bf_curl() {
+    local url=`bf_urlencode $1`
     shift
     local code=$(curl --fail --write-out '%{http_code}' \
                       --header "X-Auth-Token: $CF_AUTH_TOKEN" \
                       "$@" "$CF_STORAGE_URL/$url")
-    cf_check_code $code
+    bf_check_code $code
 }
 
 
-function cf_cp() {
+function bf_cp() {
     local src_container=$1
     local src_obj_name=$2
     local dst_container=$3
@@ -302,22 +302,22 @@ function cf_cp() {
     if [[ -z $src_container || -z $src_obj_name
                             || -z $dst_container \
                             || -z $dst_obj_name ]]; then
-        cf_usage 'cp <src-container> <src-object-name>' \
+        bf_usage 'cp <src-container> <src-object-name>' \
                  ' <dst-container> <dst-object-name>'
     fi
 
-    cf_init
-    cf_curl $src_container/$src_obj_name --silent --request COPY \
+    bf_init
+    bf_curl $src_container/$src_obj_name --silent --request COPY \
             --header "Destination: /$dst_container/$dst_obj_name"
 }
 
 
-function cf_ls() {
+function bf_ls() {
     local container=$1
-    local tmp_file=`cf_mktemp`
+    local tmp_file=`bf_mktemp`
 
-    cf_init
-    cf_curl "$container" --silent --output $tmp_file
+    bf_init
+    bf_curl "$container" --silent --output $tmp_file
 
     cat $tmp_file
 
@@ -333,16 +333,16 @@ function cf_ls() {
 }
 
 
-function cf_get() {
+function bf_get() {
     local container=$1
     shift
     local obj_names=$@
 
     if [[ -z $container || -z $obj_names ]]; then
-        cf_usage 'get <container> <object-names>'
+        bf_usage 'get <container> <object-names>'
     fi
 
-    cf_init
+    bf_init
 
     for obj_name in $obj_names; do
         if [[ -n $OPT_OUTPUT ]]; then
@@ -352,8 +352,8 @@ function cf_get() {
         fi
 
         if [[ $filename == - ]]; then
-            # FIXME: unify with cf_curl
-            obj_name=`cf_urlencode $obj_name`
+            # FIXME: unify with bf_curl
+            obj_name=`bf_urlencode $obj_name`
             curl --fail --silent \
                  --header "X-Auth-Token: $CF_AUTH_TOKEN" \
                  $CF_STORAGE_URL/$container/$obj_name
@@ -368,9 +368,9 @@ function cf_get() {
             local opt_silent=
         fi
 
-        local tmp_headers=`cf_mktemp`
+        local tmp_headers=`bf_mktemp`
 
-        cf_curl $container/$obj_name $opt_silent --dump-header $tmp_headers \
+        bf_curl $container/$obj_name $opt_silent --dump-header $tmp_headers \
                 --output $output
 
         local etag=$(cat $tmp_headers | grep --ignore-case ^Etag \
@@ -393,34 +393,34 @@ function cf_get() {
             # NOTE: If it's a 0-byte file, curl will not create the output
             # file, so we have to do that ourselves
             touch $filename
-            cf_warn "Zero-byte file created"
-        elif [[ $dlo -eq 1 || $etag == `cf_md5 $output` ]]; then
+            bf_warn "Zero-byte file created"
+        elif [[ $dlo -eq 1 || $etag == `bf_md5 $output` ]]; then
             mv $output $filename
         else
             rm $output
-            cf_die "ERROR: Failed checksum validation."
+            bf_die "ERROR: Failed checksum validation."
         fi
     done
 }
 
 
-function cf_mkdir() {
+function bf_mkdir() {
     local containers=$@
 
     if [[ -z $containers ]]; then
-        cf_usage 'mkdir <containers>'
+        bf_usage 'mkdir <containers>'
     fi
 
-    cf_init
+    bf_init
 
     for container in $containers; do
-        cf_curl $container --silent --output /dev/null --request PUT \
+        bf_curl $container --silent --output /dev/null --request PUT \
                 --upload-file /dev/null
     done
 }
 
 
-function cf_mv() {
+function bf_mv() {
     local src_container=$1
     local src_obj_name=$2
     local dst_container=$3
@@ -429,23 +429,23 @@ function cf_mv() {
     if [[ -z $src_container || -z $src_obj_name
                             || -z $dst_container \
                             || -z $dst_obj_name ]]; then
-        cf_usage 'mv <src-container> <src-object-name>' \
+        bf_usage 'mv <src-container> <src-object-name>' \
                  ' <dst-container> <dst-object-name>'
     fi
 
-    cf_cp $src_container $src_obj_name $dst_container $dst_obj_name
-    cf_rm $src_container $src_obj_name
+    bf_cp $src_container $src_obj_name $dst_container $dst_obj_name
+    bf_rm $src_container $src_obj_name
 }
 
 
-function cf_put_small_object() {
+function bf_put_small_object() {
     local container=$1
     local filename=$2
     local obj_name=$3
     local content_type=$4
     local size=$5
 
-    local etag=`cf_md5 $filename`
+    local etag=`bf_md5 $filename`
 
     if [[ $OPT_QUIET -eq 1 ]]; then
         local opt_silent=--silent
@@ -453,13 +453,13 @@ function cf_put_small_object() {
         local opt_silent=
     fi
 
-    cf_curl $container/$obj_name --request PUT \
+    bf_curl $container/$obj_name --request PUT \
             --header "Content-Type: $content_type" \
             --header "ETag: $etag" --upload-file $filename $opt_silent
 }
 
 
-function cf_put_large_object() {
+function bf_put_large_object() {
     local container=$1
     local filename=$2
     local obj_name=$3
@@ -478,9 +478,9 @@ function cf_put_large_object() {
     local seg_container=${obj_name}_segments
     local seg_prefix="$seg_container/$obj_name/`date +%s`/$size/"
 
-    cf_mkdir ${seg_container}
+    bf_mkdir ${seg_container}
 
-    local total_segments=`cf_compute_num_blocks $size $CF_SEGMENT_SIZE`
+    local total_segments=`bf_compute_num_blocks $size $CF_SEGMENT_SIZE`
 
     while [[ $left -gt 0 ]]; do
         if [[ $left -ge $CF_SEGMENT_SIZE ]]; then
@@ -489,13 +489,13 @@ function cf_put_large_object() {
             local length=$left
         fi
 
-        local nblocks=`cf_compute_num_blocks $length $DD_BLOCK_SIZE`
+        local nblocks=`bf_compute_num_blocks $length $DD_BLOCK_SIZE`
 
-        cf_log "Uploading segment $segment_num/$total_segments"
+        bf_log "Uploading segment $segment_num/$total_segments"
 
-        # FIXME: unify this with cf_curl
+        # FIXME: unify this with bf_curl
         local seg_name="$seg_prefix$(printf '%08d' $segment_num)"
-        seg_name=`cf_urlencode $seg_name`
+        seg_name=`bf_urlencode $seg_name`
         local code=$(
             dd if=$filename bs=$DD_BLOCK_SIZE count=$nblocks skip=$skip \
                 2> /dev/null | \
@@ -506,24 +506,24 @@ function cf_put_large_object() {
                  --header "Content-Type: $content_type" \
                  $CF_STORAGE_URL/$seg_name)
 
-        cf_check_code $code
+        bf_check_code $code
 
-        cf_log ""
+        bf_log ""
 
         let left-=$length
         let skip+=$nblocks
         let segment_num++
     done
 
-    cf_log "Uploading manifest for ${filename}"
-    cf_curl ${container}/${obj_name} --data-binary '' --output /dev/null \
+    bf_log "Uploading manifest for ${filename}"
+    bf_curl ${container}/${obj_name} --data-binary '' --output /dev/null \
             --request PUT --header "Content-Type: ${content_type}" \
             --header "X-Object-Manifest: ${seg_prefix}" \
             $opt_silent
 }
 
 
-function cf_put() {
+function bf_put() {
     local container=$1
     shift
     local filenames=$@
@@ -531,14 +531,14 @@ function cf_put() {
     local ret=0
 
     if [[ -z $container || -z $filenames ]]; then
-        cf_usage 'put <container> <filenames>'
+        bf_usage 'put <container> <filenames>'
     fi
 
-    cf_init
+    bf_init
 
     for filename in $filenames; do
         if [[ ! -e $filename ]]; then
-            cf_error "File not found: $filename"
+            bf_error "File not found: $filename"
             ret=1
             continue
         fi
@@ -548,15 +548,15 @@ function cf_put() {
         if [[ -n $OPT_CONTENT_TYPE ]]; then
             local content_type=$OPT_CONTENT_TYPE
         else
-            local content_type=`cf_autodetect_filetype $filename`
+            local content_type=`bf_autodetect_filetype $filename`
         fi
 
-        local size=`cf_size $filename`
+        local size=`bf_size $filename`
 
         if [[ $size -gt $CF_SEGMENT_SIZE ]]; then
-            cf_put_large_object $container $filename $obj_name "$content_type" $size
+            bf_put_large_object $container $filename $obj_name "$content_type" $size
         else
-            cf_put_small_object $container $filename $obj_name "$content_type" $size
+            bf_put_small_object $container $filename $obj_name "$content_type" $size
         fi
     done
 
@@ -564,28 +564,28 @@ function cf_put() {
 }
 
 
-function cf_rm() {
+function bf_rm() {
     local container=$1
     shift
     local obj_names=$@
 
     if [[ -z $container || -z $obj_names ]]; then
-        cf_usage 'rm <container> <object-names>'
+        bf_usage 'rm <container> <object-names>'
     fi
 
-    cf_init
+    bf_init
 
     for obj_name in $obj_names; do
-        cf_curl $container/$obj_name --silent --request DELETE
+        bf_curl $container/$obj_name --silent --request DELETE
     done
 }
 
 
-function cf_clear_container() {
+function bf_clear_container() {
     local container=$1
 
     # TODO: handle pagination
-    local obj_names=`cf_ls $container`
+    local obj_names=`bf_ls $container`
 
     # NOTE: tr -d is needed for Mac OS X, since wc -w has leading spaces
     # in output
@@ -593,45 +593,45 @@ function cf_clear_container() {
     local idx=1
 
     for obj_name in $obj_names; do
-        cf_log "Deleting $idx/$total_objects: $obj_name"
+        bf_log "Deleting $idx/$total_objects: $obj_name"
         let idx++
-        cf_rm $container $obj_name
+        bf_rm $container $obj_name
     done
 }
 
 
-function cf_rmdir() {
+function bf_rmdir() {
     local containers=$@
 
     if [[ -z $containers ]]; then
-        cf_usage 'rmdir <containers>'
+        bf_usage 'rmdir <containers>'
     fi
 
-    cf_init
+    bf_init
 
     for container in $containers; do
         if [[ $OPT_FORCE -eq 1 ]]; then
-            cf_clear_container $container
+            bf_clear_container $container
         fi
 
-        cf_curl $container --silent --request DELETE
+        bf_curl $container --silent --request DELETE
     done
 }
 
 
-function cf_stat() {
+function bf_stat() {
     local container=$1
     shift
     local obj_names=$@
 
-    cf_init
+    bf_init
     for obj_name in $obj_names; do
-        local tmp_file=`cf_mktemp`
+        local tmp_file=`bf_mktemp`
 
         # NOTE: if we used --request HEAD instead of --head, curl would expect
         # Content-Length bytes to be sent as entity body which would cause a
         # timeout since HEAD requests don't result in a body
-        cf_curl $container/$obj_name --silent --output /dev/null --head \
+        bf_curl $container/$obj_name --silent --output /dev/null --head \
                 --dump-header $tmp_file
 
         cat $tmp_file
@@ -640,13 +640,13 @@ function cf_stat() {
 }
 
 
-function cf_init() {
+function bf_init() {
     if [[ -n $CF_AUTH_TOKEN ]]; then
         return
     fi
 
-    cf_retrieve_credentials
-    cf_auth
+    bf_retrieve_credentials
+    bf_auth
 
     if [[ $CF_SMART_COMPLETION -eq 1 && ! -d $COMPLETION_DIR ]]; then
         mkdir $COMPLETION_DIR
@@ -654,13 +654,13 @@ function cf_init() {
 }
 
 
-function cf_version() {
+function bf_version() {
     echo $VERSION
     exit 0
 }
 
 
-function cf_help() {
+function bf_help() {
     cat <<EOF
 SYNOPSIS
 
@@ -741,7 +741,7 @@ while getopts 'fho:qst:v' opt; do
         f)
             OPT_FORCE=1;;
         h)
-            cf_help;;
+            bf_help;;
         o)
             OPT_OUTPUT=$OPTARG;;
         q)
@@ -751,9 +751,9 @@ while getopts 'fho:qst:v' opt; do
         t)
             OPT_CONTENT_TYPE=$OPTARG;;
         v)
-            cf_version;;
+            bf_version;;
         *)
-            cf_general_usage;;
+            bf_general_usage;;
     esac
 done
 
@@ -765,23 +765,23 @@ shift
 
 case $cmd in
     cp)
-        cf_cp $@;;
+        bf_cp $@;;
     ls)
-        cf_ls $@;;
+        bf_ls $@;;
     get)
-        cf_get $@;;
+        bf_get $@;;
     mkdir)
-        cf_mkdir $@;;
+        bf_mkdir $@;;
     mv)
-        cf_mv $@;;
+        bf_mv $@;;
     put)
-        cf_put $@;;
+        bf_put $@;;
     rm)
-        cf_rm $@;;
+        bf_rm $@;;
     rmdir)
-        cf_rmdir $@;;
+        bf_rmdir $@;;
     stat)
-        cf_stat $@;;
+        bf_stat $@;;
     *)
-        cf_general_usage;;
+        bf_general_usage;;
 esac

@@ -1,6 +1,6 @@
 # Search array1 for any element in array2. Stop on first match. -1 on not
 # found.
-function _cf_match() {
+function _bf_match() {
     declare -a array1=("${!1}")
     declare -a array2=("${!2}")
 
@@ -21,7 +21,7 @@ function _cf_match() {
 }
 
 
-function _cf_completer() {
+function _bf_completer() {
     COMPREPLY=()
 
     local OPTIONS=(-f -h -o -q -s -t -v)
@@ -29,7 +29,7 @@ function _cf_completer() {
 
     local opts=
     local cur="${COMP_WORDS[COMP_CWORD]}"
-    local cmd_idx=`_cf_match COMP_WORDS[@] COMMANDS[@]`
+    local cmd_idx=`_bf_match COMP_WORDS[@] COMMANDS[@]`
     local cmd=COMP_WORDS[cmd_idx]}
     local container_idx=`expr $cmd_idx + 1`
 
@@ -62,4 +62,4 @@ function _cf_completer() {
 }
 
 
-complete -F _cf_completer bashfiles
+complete -F _bf_completer bashfiles

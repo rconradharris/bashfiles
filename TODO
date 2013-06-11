@@ -5,6 +5,11 @@ BUGS
 
 - rmdir: Handle pagination for clear_container
 
+CLEANUP
+=======
+
+- Better separate bashfiles core from CloudFiles driver
+
 FEATURES
 ========
 
@@ -29,8 +34,6 @@ FEATURES
 
 DOC
 ===
-
-- Rename to bashfiles
 
 - Add curl bashfiles.org support
     - curl bashfiles.org/stable
