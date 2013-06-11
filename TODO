@@ -1,6 +1,8 @@
 BUGS
 ====
 
+- Make CloudFiles const start with CF_
+
 - Add arg checking for cmd_stat
 
 - What to do with -o with multiple files on get

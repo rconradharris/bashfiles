@@ -6,11 +6,6 @@ BF_PROG=`basename $0`
 BF_CONFIG=~/.$BF_PROG
 BF_COMPLETION_DIR=~/.$BF_PROG-completion
 
-DEFAULT_CF_AUTH_URL_US=https://auth.api.rackspacecloud.com/v1.0
-DEFAULT_CF_AUTH_URL_UK=https://lon.auth.api.rackspacecloud.com/v1.0
-
-CF_SEGMENT_SIZE=5368709120
-CF_INITIALIZED=0
 DD_BLOCK_SIZE=1024
 
 OPT_CONTENT_TYPE=
@@ -174,86 +169,6 @@ function bf_ask_with_default() {
     fi
 
     echo "$reply"
-}
-
-
-function bf_save_config() {
-    if [[ -e $BF_CONFIG ]]; then
-        bf_warn "Cannot save credentials, file $BF_CONFIG already exists"
-        return
-    fi
-    cat > $BF_CONFIG <<EOF
-CF_USER=$CF_USER
-CF_API_KEY=$CF_API_KEY
-CF_AUTH_URL=$CF_AUTH_URL
-BF_SMART_COMPLETION=$BF_SMART_COMPLETION
-CF_SERVICENET=$CF_SERVICENET
-EOF
-}
-
-
-function bf_retrieve_credentials() {
-    local creds_updated=0
-
-    # 1. Check config file
-    # 2. Check environment
-    # 3. Ask user
-    # 4. Optional: Save credentials to config file
-    bf_load_config
-
-    if [[ -z $CF_USER ]]; then
-        bf_ask_required 'CF_USER' 'CloudFiles Username: '
-        creds_updated=1
-    fi
-
-    if [[ -z $CF_API_KEY ]]; then
-        bf_ask_required 'CF_API_KEY' 'CloudFiles API Key: '
-        creds_updated=1
-    fi
-
-    if [[ -z $CF_AUTH_URL ]]; then
-        local auth_url=$(bf_ask_with_default us \
-                         'Location or Auth URL: [<url>/uk/US]: ')
-
-        if [[ $auth_url == 'uk' || $auth_url == 'UK' ]]; then
-            CF_AUTH_URL=$DEFAULT_CF_AUTH_URL_UK
-        elif [[ $auth_url == 'us' || $auth_url == 'US' ]]; then
-            CF_AUTH_URL=$DEFAULT_CF_AUTH_URL_US
-        else
-            CF_AUTH_URL=$auth_url
-        fi
-    fi
-
-    if [[ -z $CF_SERVICENET ]]; then
-        local snet=`bf_ask_with_default n 'Use ServiceNET [y/N]? '`
-
-        if [[ $snet = 'y' || $snet = 'Y' ]]; then
-            CF_SERVICENET=1
-        else
-            CF_SERVICENET=0
-        fi
-    fi
-
-    if [[ $creds_updated -eq 1 ]]; then
-        # Only ask about smart completion if we were already asking for USER
-        # or API_KEY
-        if [[ -z $BF_SMART_COMPLETION ]]; then
-            local smart_completion=$(bf_ask_with_default y \
-                         'Enable container and object name completion [Y/n]? ')
-
-            if [[ $smart_completion = 'y' || $smart_completion = 'Y' ]]; then
-                BF_SMART_COMPLETION=1
-            else
-                BF_SMART_COMPLETION=0
-            fi
-        fi
-
-        local save_creds=`bf_ask_with_default N 'Save settings [y/N]? '`
-
-        if [[ $save_creds = 'y' || $save_creds = 'Y' ]]; then
-            bf_save_config
-        fi
-    fi
 }
 
 
@@ -458,7 +373,13 @@ function cmd_stat() {
 #############################################################################
 
 
-function bf_handle_snet() {
+DEFAULT_CF_AUTH_URL_US=https://auth.api.rackspacecloud.com/v1.0
+DEFAULT_CF_AUTH_URL_UK=https://lon.auth.api.rackspacecloud.com/v1.0
+CF_SEGMENT_SIZE=5368709120
+CF_INITIALIZED=0
+
+
+function cf_handle_snet() {
     if [[ $OPT_SERVICENET -eq 1 || $CF_SERVICENET -eq 1 ]]; then
         CF_STORAGE_URL=${CF_STORAGE_URL/https:\/\//https://snet-}
         CF_STORAGE_URL=${CF_STORAGE_URL/http:\/\//http://snet-}
@@ -466,7 +387,7 @@ function bf_handle_snet() {
 }
 
 
-function bf_auth() {
+function cf_auth() {
     if [[ -z $CF_AUTH_URL ]]; then
         CF_AUTH_URL=$DEFAULT_CF_AUTH_URL_US
     fi
@@ -491,11 +412,11 @@ function bf_auth() {
         exit 1
     fi
 
-    bf_handle_snet
+    cf_handle_snet
 }
 
 
-function bf_check_code() {
+function cf_check_code() {
     local code=$1
 
     if [[ $code -lt 200 || $code -gt 299 ]]; then
@@ -504,15 +425,15 @@ function bf_check_code() {
 }
 
 
-function bf_curl() {
+function cf_curl() {
     local url=`bf_urlencode $1`
     shift
 
-    bf_init
+    cf_init
     local code=$(curl --fail --write-out '%{http_code}' \
                       --header "X-Auth-Token: $CF_AUTH_TOKEN" \
                       "$@" "$CF_STORAGE_URL/$url")
-    bf_check_code $code
+    cf_check_code $code
 }
 
 
@@ -522,7 +443,7 @@ function cf_cp() {
     local dst_container=$3
     local dst_obj_name=$4
 
-    bf_curl $src_container/$src_obj_name --silent --request COPY \
+    cf_curl $src_container/$src_obj_name --silent --request COPY \
             --header "Destination: /$dst_container/$dst_obj_name"
 }
 
@@ -531,7 +452,7 @@ function cf_ls() {
     local container=$1
     local tmp_file=$2
 
-    bf_curl "$container" --silent --output $tmp_file
+    cf_curl "$container" --silent --output $tmp_file
 }
 
 
@@ -554,8 +475,8 @@ function cf_get() {
         fi
 
         if [[ $filename == - ]]; then
-            # FIXME: unify with bf_curl
-            bf_init
+            # FIXME: unify with cf_curl
+            cf_init
             obj_name=`bf_urlencode $obj_name`
             curl --fail --silent \
                  --header "X-Auth-Token: $CF_AUTH_TOKEN" \
@@ -568,7 +489,7 @@ function cf_get() {
         local output=.$filename.download
         local tmp_headers=`bf_mktemp`
 
-        bf_curl $container/$obj_name $opt_silent --dump-header $tmp_headers \
+        cf_curl $container/$obj_name $opt_silent --dump-header $tmp_headers \
                 --output $output
 
         local etag=$(cat $tmp_headers | grep --ignore-case ^Etag \
@@ -606,7 +527,7 @@ function cf_mkdir() {
     local containers=$@
 
     for container in $containers; do
-        bf_curl $container --silent --output /dev/null --request PUT \
+        cf_curl $container --silent --output /dev/null --request PUT \
                 --upload-file /dev/null
     done
 }
@@ -633,7 +554,7 @@ function cf_put_small_object() {
 
     local etag=`bf_md5 $filename`
 
-    bf_curl $container/$obj_name --request PUT \
+    cf_curl $container/$obj_name --request PUT \
             --header "Content-Type: $content_type" \
             --header "ETag: $etag" --upload-file $filename $opt_silent
 }
@@ -669,8 +590,8 @@ function cf_put_large_object() {
 
         bf_log "Uploading segment $segment_num/$total_segments"
 
-        # FIXME: unify this with bf_curl
-        bf_init
+        # FIXME: unify this with cf_curl
+        cf_init
         local seg_name="$seg_prefix$(printf '%08d' $segment_num)"
         seg_name=`bf_urlencode $seg_name`
         local code=$(
@@ -683,7 +604,7 @@ function cf_put_large_object() {
                  --header "Content-Type: $content_type" \
                  $CF_STORAGE_URL/$seg_name)
 
-        bf_check_code $code
+        cf_check_code $code
 
         bf_log ""
 
@@ -693,7 +614,7 @@ function cf_put_large_object() {
     done
 
     bf_log "Uploading manifest for ${filename}"
-    bf_curl ${container}/${obj_name} --data-binary '' --output /dev/null \
+    cf_curl ${container}/${obj_name} --data-binary '' --output /dev/null \
             --request PUT --header "Content-Type: ${content_type}" \
             --header "X-Object-Manifest: ${seg_prefix}" \
             $opt_silent
@@ -748,7 +669,7 @@ function cf_rm() {
     local obj_names=$@
 
     for obj_name in $obj_names; do
-        bf_curl $container/$obj_name --silent --request DELETE
+        cf_curl $container/$obj_name --silent --request DELETE
     done
 }
 
@@ -780,7 +701,7 @@ function cf_rmdir() {
             bf_clear_container $container
         fi
 
-        bf_curl $container --silent --request DELETE
+        cf_curl $container --silent --request DELETE
     done
 }
 
@@ -796,7 +717,7 @@ function cf_stat() {
         # NOTE: if we used --request HEAD instead of --head, curl would expect
         # Content-Length bytes to be sent as entity body which would cause a
         # timeout since HEAD requests don't result in a body
-        bf_curl $container/$obj_name --silent --output /dev/null --head \
+        cf_curl $container/$obj_name --silent --output /dev/null --head \
                 --dump-header $tmp_file
 
         cat $tmp_file
@@ -805,13 +726,93 @@ function cf_stat() {
 }
 
 
-function bf_init() {
+function cf_save_config() {
+    if [[ -e $BF_CONFIG ]]; then
+        bf_warn "Cannot save credentials, file $BF_CONFIG already exists"
+        return
+    fi
+    cat > $BF_CONFIG <<EOF
+CF_USER=$CF_USER
+CF_API_KEY=$CF_API_KEY
+CF_AUTH_URL=$CF_AUTH_URL
+BF_SMART_COMPLETION=$BF_SMART_COMPLETION
+CF_SERVICENET=$CF_SERVICENET
+EOF
+}
+
+
+function cf_retrieve_credentials() {
+    local creds_updated=0
+
+    # 1. Check config file
+    # 2. Check environment
+    # 3. Ask user
+    # 4. Optional: Save credentials to config file
+    bf_load_config
+
+    if [[ -z $CF_USER ]]; then
+        bf_ask_required 'CF_USER' 'CloudFiles Username: '
+        creds_updated=1
+    fi
+
+    if [[ -z $CF_API_KEY ]]; then
+        bf_ask_required 'CF_API_KEY' 'CloudFiles API Key: '
+        creds_updated=1
+    fi
+
+    if [[ -z $CF_AUTH_URL ]]; then
+        local auth_url=$(bf_ask_with_default us \
+                         'Location or Auth URL: [<url>/uk/US]: ')
+
+        if [[ $auth_url == 'uk' || $auth_url == 'UK' ]]; then
+            CF_AUTH_URL=$DEFAULT_CF_AUTH_URL_UK
+        elif [[ $auth_url == 'us' || $auth_url == 'US' ]]; then
+            CF_AUTH_URL=$DEFAULT_CF_AUTH_URL_US
+        else
+            CF_AUTH_URL=$auth_url
+        fi
+    fi
+
+    if [[ -z $CF_SERVICENET ]]; then
+        local snet=`bf_ask_with_default n 'Use ServiceNET [y/N]? '`
+
+        if [[ $snet = 'y' || $snet = 'Y' ]]; then
+            CF_SERVICENET=1
+        else
+            CF_SERVICENET=0
+        fi
+    fi
+
+    if [[ $creds_updated -eq 1 ]]; then
+        # Only ask about smart completion if we were already asking for USER
+        # or API_KEY
+        if [[ -z $BF_SMART_COMPLETION ]]; then
+            local smart_completion=$(bf_ask_with_default y \
+                         'Enable container and object name completion [Y/n]? ')
+
+            if [[ $smart_completion = 'y' || $smart_completion = 'Y' ]]; then
+                BF_SMART_COMPLETION=1
+            else
+                BF_SMART_COMPLETION=0
+            fi
+        fi
+
+        local save_creds=`bf_ask_with_default N 'Save settings [y/N]? '`
+
+        if [[ $save_creds = 'y' || $save_creds = 'Y' ]]; then
+            cf_save_config
+        fi
+    fi
+}
+
+
+function cf_init() {
     if [[ $CF_INITIALIZED -eq 1 ]]; then
         return
     fi
 
-    bf_retrieve_credentials
-    bf_auth
+    cf_retrieve_credentials
+    cf_auth
 
     if [[ $BF_SMART_COMPLETION -eq 1 && ! -d $BF_COMPLETION_DIR ]]; then
         mkdir $BF_COMPLETION_DIR
