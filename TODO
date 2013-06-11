@@ -1,10 +1,6 @@
 BUGS
 ====
 
-- Bash-completion fixes
-    - handle multi-file commands
-    - put should complete to filenames everything else object-names
-
 - What to do with -o with multiple files on get
 
 - rmdir: Handle pagination for clear_container
@@ -33,6 +29,15 @@ FEATURES
 
 DOC
 ===
+
+- Rename to bashfiles
+
+- Add curl bashfiles.org support
+    - curl bashfiles.org/stable
+    - curl bashfiles.org/latest
+    - curl bashfiles.org switches on user-agent
+        - curl and wget reply with stable
+        - everything else replies with redirect to github
 
 - Add License
     - Add LICENSE file

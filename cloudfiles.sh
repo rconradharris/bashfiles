@@ -621,20 +621,22 @@ function cf_rmdir() {
 
 function cf_stat() {
     local container=$1
-    local obj_name=$2
-
-    local tmp_file=`cf_mktemp`
+    shift
+    local obj_names=$@
 
     cf_init
+    for obj_name in $obj_names; do
+        local tmp_file=`cf_mktemp`
 
-    # NOTE: if we used --request HEAD instead of --head, curl would expect
-    # Content-Length bytes to be sent as entity body which would cause a
-    # timeout since HEAD requests don't result in a body
-    cf_curl $container/$obj_name --silent --output /dev/null --head \
-            --dump-header $tmp_file
+        # NOTE: if we used --request HEAD instead of --head, curl would expect
+        # Content-Length bytes to be sent as entity body which would cause a
+        # timeout since HEAD requests don't result in a body
+        cf_curl $container/$obj_name --silent --output /dev/null --head \
+                --dump-header $tmp_file
 
-    cat $tmp_file
-    rm $tmp_file
+        cat $tmp_file
+        rm $tmp_file
+    done
 }
 
 
@@ -648,44 +650,6 @@ function cf_init() {
 
     if [[ $CF_SMART_COMPLETION -eq 1 && ! -d $COMPLETION_DIR ]]; then
         mkdir $COMPLETION_DIR
-    fi
-}
-
-
-function cf_bash_completer() {
-    local cur=$1
-    local prev=$2
-    local cmds='cp get ls mkdir mv put rm rmdir stat'
-
-    # Commands
-    if [[ $cur = $PROG || $prev = $PROG  ]]; then
-        echo $cmds
-        return
-    fi
-
-    local container_names=`cat $COMPLETION_DIR/container-names | tr '\n' ' '`
-
-    # Container Names
-    if [[ $cmds =~ $cur || $cmds =~ $prev ]]; then
-        echo $container_names
-        return
-    fi
-
-    # Object Names
-    if [[ $container_names =~ $cur ]]; then
-        local container=$cur
-    elif [[ $container_names =~ $prev ]]; then
-        local container=$prev
-    else
-        local container=
-    fi
-
-    if [[ -n $container ]]; then
-        local obj_filename=$COMPLETION_DIR/$container-object-names
-        if [[ -r $obj_filename ]]; then
-            echo `cat $obj_filename | tr '\n' ' '`
-            return
-        fi
     fi
 }
 
@@ -818,8 +782,6 @@ case $cmd in
         cf_rmdir $@;;
     stat)
         cf_stat $@;;
-    _bash_completer)
-        cf_bash_completer $@;;
     *)
         cf_general_usage;;
 esac
