@@ -18,8 +18,6 @@ CLEANUP
 FEATURES
 ========
 
-- Lazy-init
-
 - Make container public
 
 - Create install script to

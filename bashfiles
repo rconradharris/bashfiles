@@ -6,6 +6,8 @@ PROG=`basename $0`
 CONFIG=~/.$PROG
 COMPLETION_DIR=~/.$PROG-completion
 
+BF_INITIALIZED=0
+
 DEFAULT_CF_AUTH_URL_US=https://auth.api.rackspacecloud.com/v1.0
 DEFAULT_CF_AUTH_URL_UK=https://lon.auth.api.rackspacecloud.com/v1.0
 
@@ -286,6 +288,8 @@ function bf_check_code() {
 function bf_curl() {
     local url=`bf_urlencode $1`
     shift
+
+    bf_init
     local code=$(curl --fail --write-out '%{http_code}' \
                       --header "X-Auth-Token: $CF_AUTH_TOKEN" \
                       "$@" "$CF_STORAGE_URL/$url")
@@ -306,7 +310,6 @@ function bf_cp() {
                  ' <dst-container> <dst-object-name>'
     fi
 
-    bf_init
     bf_curl $src_container/$src_obj_name --silent --request COPY \
             --header "Destination: /$dst_container/$dst_obj_name"
 }
@@ -316,7 +319,6 @@ function bf_ls() {
     local container=$1
     local tmp_file=`bf_mktemp`
 
-    bf_init
     bf_curl "$container" --silent --output $tmp_file
 
     cat $tmp_file
@@ -342,8 +344,6 @@ function bf_get() {
         bf_usage 'get <container> <object-names>'
     fi
 
-    bf_init
-
     for obj_name in $obj_names; do
         if [[ -n $OPT_OUTPUT ]]; then
             local filename=$OPT_OUTPUT
@@ -353,6 +353,7 @@ function bf_get() {
 
         if [[ $filename == - ]]; then
             # FIXME: unify with bf_curl
+            bf_init
             obj_name=`bf_urlencode $obj_name`
             curl --fail --silent \
                  --header "X-Auth-Token: $CF_AUTH_TOKEN" \
@@ -412,8 +413,6 @@ function bf_mkdir() {
     if [[ -z $containers ]]; then
         bf_usage 'mkdir <containers>'
     fi
-
-    bf_init
 
     for container in $containers; do
         bf_curl $container --silent --output /dev/null --request PUT \
@@ -487,6 +486,7 @@ function bf_put_large_object() {
         bf_log "Uploading segment $segment_num/$total_segments"
 
         # FIXME: unify this with bf_curl
+        bf_init
         local seg_name="$seg_prefix$(printf '%08d' $segment_num)"
         seg_name=`bf_urlencode $seg_name`
         local code=$(
@@ -527,8 +527,6 @@ function bf_put() {
     if [[ -z $container || -z $filenames ]]; then
         bf_usage 'put <container> <filenames>'
     fi
-
-    bf_init
 
     for filename in $filenames; do
         if [[ ! -e $filename ]]; then
@@ -573,8 +571,6 @@ function bf_rm() {
         bf_usage 'rm <container> <object-names>'
     fi
 
-    bf_init
-
     for obj_name in $obj_names; do
         bf_curl $container/$obj_name --silent --request DELETE
     done
@@ -607,8 +603,6 @@ function bf_rmdir() {
         bf_usage 'rmdir <containers>'
     fi
 
-    bf_init
-
     for container in $containers; do
         if [[ $OPT_FORCE -eq 1 ]]; then
             bf_clear_container $container
@@ -624,7 +618,6 @@ function bf_stat() {
     shift
     local obj_names=$@
 
-    bf_init
     for obj_name in $obj_names; do
         local tmp_file=`bf_mktemp`
 
@@ -641,7 +634,7 @@ function bf_stat() {
 
 
 function bf_init() {
-    if [[ -n $CF_AUTH_TOKEN ]]; then
+    if [[ $BF_INITIALIZED -eq 1 ]]; then
         return
     fi
 
@@ -651,6 +644,8 @@ function bf_init() {
     if [[ $CF_SMART_COMPLETION -eq 1 && ! -d $COMPLETION_DIR ]]; then
         mkdir $COMPLETION_DIR
     fi
+
+    BF_INITIALIZED=1
 }
 
 
