@@ -418,6 +418,19 @@ function cmd_put() {
 }
 
 
+function cmd_rm() {
+    local container=$1
+    shift
+    local obj_names=$@
+
+    if [[ -z $container || -z $obj_names ]]; then
+        bf_usage 'rm <container> <object-names>'
+    fi
+
+    cf_rm $container $obj_names
+}
+
+
 #############################################################################
 #                                                                           #
 #                               CloudFiles                                  #
@@ -586,7 +599,7 @@ function cf_mv() {
     local dst_obj_name=$4
 
     cf_cp $src_container $src_obj_name $dst_container $dst_obj_name
-    bf_rm $src_container $src_obj_name
+    cf_rm $src_container $src_obj_name
 }
 
 
@@ -709,14 +722,10 @@ function cf_put() {
 }
 
 
-function bf_rm() {
+function cf_rm() {
     local container=$1
     shift
     local obj_names=$@
-
-    if [[ -z $container || -z $obj_names ]]; then
-        bf_usage 'rm <container> <object-names>'
-    fi
 
     for obj_name in $obj_names; do
         bf_curl $container/$obj_name --silent --request DELETE
@@ -844,7 +853,7 @@ case $cmd in
     put)
         cmd_put $@;;
     rm)
-        bf_rm $@;;
+        cmd_rm $@;;
     rmdir)
         bf_rmdir $@;;
     stat)
