@@ -228,6 +228,22 @@ function bf_autodetect_filetype() {
 }
 
 
+function bf_assert_file_missing() {
+    local filename=$1
+    if [[ -e $filename ]]; then
+        bf_die "File '$filename' already exists"
+    fi
+}
+
+
+function bf_assert_file_exists() {
+    local filename=$1
+    if [[ ! -e $filename ]]; then
+        bf_die "File '$filename' not found"
+    fi
+}
+
+
 #############################################################################
 #                                                                           #
 #                               Commands                                    #
@@ -481,8 +497,8 @@ function cf_get() {
                  --header "X-Auth-Token: $CF_AUTH_TOKEN" \
                  $CF_STORAGE_URL/$container/$obj_name
             continue
-        elif [[ -e $filename && $OPT_FORCE -ne 1 ]]; then
-            bf_die "File '$filename' already exists"
+        elif [[ $OPT_FORCE -ne 1 ]]; then
+            bf_assert_file_missing $filename
         fi
 
         local output=.$filename.download
@@ -640,9 +656,7 @@ function cf_put() {
     fi
 
     for filename in $filenames; do
-        if [[ ! -e $filename ]]; then
-            bf_die "File not found: $filename"
-        fi
+        bf_assert_file_exists $filename
 
         local obj_name=`basename $filename`
 
