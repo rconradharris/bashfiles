@@ -442,6 +442,15 @@ function cmd_rmdir() {
 }
 
 
+function cmd_stat() {
+    local container=$1
+    shift
+    local obj_names=$@
+
+    cf_stat $container $obj_names
+}
+
+
 #############################################################################
 #                                                                           #
 #                               CloudFiles                                  #
@@ -776,7 +785,7 @@ function cf_rmdir() {
 }
 
 
-function bf_stat() {
+function cf_stat() {
     local container=$1
     shift
     local obj_names=$@
@@ -864,7 +873,7 @@ case $cmd in
     rmdir)
         cmd_rmdir $@;;
     stat)
-        bf_stat $@;;
+        cmd_stat $@;;
     *)
         bf_general_usage;;
 esac

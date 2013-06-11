@@ -1,6 +1,8 @@
 BUGS
 ====
 
+- Add arg checking for cmd_stat
+
 - What to do with -o with multiple files on get
 
 - rmdir: Handle pagination for clear_container
@@ -14,8 +16,6 @@ BUGS
 
 CLEANUP
 =======
-
-- Better separate bashfiles core from CloudFiles driver
 
 - Replace bf_error with just bf_die
 
