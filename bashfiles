@@ -344,6 +344,26 @@ function cmd_cp() {
 }
 
 
+function cmd_ls() {
+    local container=$1
+    local tmp_file=`bf_mktemp`
+
+    cf_ls "$container" $tmp_file
+
+    cat $tmp_file
+
+    if [[ $BF_SMART_COMPLETION -eq 1 ]]; then
+        if [[ -z $container ]]; then
+            mv $tmp_file $BF_COMPLETION_DIR/container-names
+        else
+            mv $tmp_file $BF_COMPLETION_DIR/$container-object-names
+        fi
+    else
+        rm $tmp_file
+    fi
+}
+
+
 #############################################################################
 #                                                                           #
 #                               CloudFiles                                  #
@@ -420,23 +440,11 @@ function cf_cp() {
 }
 
 
-function bf_ls() {
+function cf_ls() {
     local container=$1
-    local tmp_file=`bf_mktemp`
+    local tmp_file=$2
 
     bf_curl "$container" --silent --output $tmp_file
-
-    cat $tmp_file
-
-    if [[ $BF_SMART_COMPLETION -eq 1 ]]; then
-        if [[ -z $container ]]; then
-            mv $tmp_file $BF_COMPLETION_DIR/container-names
-        else
-            mv $tmp_file $BF_COMPLETION_DIR/$container-object-names
-        fi
-    else
-        rm $tmp_file
-    fi
 }
 
 
@@ -792,7 +800,7 @@ case $cmd in
     cp)
         cmd_cp $@;;
     ls)
-        bf_ls $@;;
+        cmd_ls $@;;
     get)
         bf_get $@;;
     mkdir)
