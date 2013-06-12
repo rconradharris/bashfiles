@@ -24,21 +24,21 @@ CONST_ZERO_MD5=d41d8cd98f00b204e9800998ecf8427e
 
 
 function bf_help() {
-    cat <<EOF
+    cat <<'EOF'
 SYNOPSIS
 
-    $BF_PROG [options] [commands] [container] [object-names]
+    bashfiles [options] [commands] [container] [object-names]
 
 DESCRIPTION
 
-    $BF_PROG is a utility for working with Rackspace CloudFiles via the
-    command-line. $BF_PROG has minimal dependencies, requiring only bash, curl,
-    and a few other POSIX utilities.
+    `bashfiles` is a utility for working with Rackspace CloudFiles via the
+    command-line. `bashfiles` has minimal dependencies, requiring only bash,
+    curl, and a few other POSIX utilities.
 
-    You can pass settings to $BF_PROG via environment variables or by defining a
-    configuration file located at `~/.bashfiles`.
+    You can pass settings to `bashfiles` via environment variables or by
+    defining a configuration file located at `~/.bashfiles`.
 
-    $BF_PROG supports bash-completion against commands, container and
+    `bashfiles` supports bash-completion against commands, container and
     object-names, and can be enabled with the BF_SMART_COMPLETION=1 setting.
 
 OPTIONS
@@ -49,18 +49,40 @@ OPTIONS
     -i      Input filename (- for stdin)
     -o      Output filename (- for stdout)
     -q      Quiet mode
-    -t      Specify Content-Type for an upload (autodetect by default)
+    -t      Set Content-Type for upload
     -v      Print version
 
 COMMANDS
 
     cp      Server-side object copy
+
+            -f Overwrite destination object if exists
+
     get     Download file (-f overwrites existing file, if present)
+
+            -f Overwrite local file if exists
+            -o Output to different filename, - for stdout
+
     ls      List all containers or contents of a specific container
+
     mkdir   Create a container
+
     mv      Server-side object move
+
+            -f Overwrite destination object if exists
+
     put     Upload file
-    rmdir   Remove a container (-f to clear it first)
+
+            -f Overwrite remote object if exists
+            -i Input from different filename, - for stdin
+            -t Set Content-Type for upload
+
+    rm      Remove object
+
+    rmdir   Remove container
+
+            -f Clear container before removing it
+
     stat    Account, container, or object information
 
 SETTINGS

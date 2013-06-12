@@ -12,7 +12,9 @@ Features
 
 * Bash-completion against commands, container-names, and object-names
 
-* Config-file support (``~/.cloudfiles.sh``)
+* Config-file support
+
+* Content-Type detection
 
 
 CloudFiles Specific Features
@@ -20,11 +22,11 @@ CloudFiles Specific Features
 
 * Large-Object Support (for files over 5 GB)
 
+* Server-side Copy/Move
+
 * ServiceNET support
 
 * Checksum validation
-
-* Server-side Copy/Move
 
 
 Enable Bash Completion
