@@ -5,21 +5,17 @@ BUGS
     - Become aware of -e <ENDPOINT> argument
     - Add endpoint sub-commands
 
-- rmdir: Handle pagination for clear_container
-
-
 FEATURES
 ========
+
+- Add insecure mode
+    - Add base_curl_opts
+    - CF_INSECURE setting
+    - Add to interactive config
 
 - Add context-help:
     - bashfiles help (general help)
     - bashfiles help get (get specific help)
-
-- Make container public
-
-- Switch to SLO large-files?
-
-- Add Cloudfiles v2 Auth
 
 - Add CHANGELOG
 
@@ -31,6 +27,21 @@ FEATURES
     CF_USER=foo
 
 - Ability to bind an endpoint to a container
+
+- CloudFiles features:
+    - Make container public
+    - Switch to SLO large-files?
+    - Add Cloudfiles v2 Auth
+    - rmdir: Handle pagination for clear_container
+
+- Other backends:
+    - S3
+    - DropBox
+    - GoogleDrive
+    - SSH
+
+- Consider SQLite approach of building aggregate file
+    - Use Makefile
 
 
 TEST

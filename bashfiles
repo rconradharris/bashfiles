@@ -656,29 +656,35 @@ function cf_auth() {
         return
     fi
 
+    local tmp_headers=`bf_mktemp`
+
     if [[ -z $CF_AUTH_URL ]]; then
         CF_AUTH_URL=$CF_DEFAULT_AUTH_URL_US
     fi
 
-    local auth_resp=$(
-        curl --silent --fail --dump-header - \
+    local code=$(
+        curl --silent --fail --write-out '%{http_code}' \
+             --dump-header $tmp_headers \
              --header "X-Auth-Key: $CF_API_KEY" \
              --header "X-Auth-User: $CF_USER" \
              ${CF_AUTH_URL})
 
-    CF_AUTH_TOKEN=$(echo "$auth_resp" | grep ^X-Auth-Token \
+    cf_check_code $code
+
+    CF_AUTH_TOKEN=$(cat $tmp_headers | grep ^X-Auth-Token \
+                                     | sed 's/.*: //' \
+                                     | tr -d "\r\n")
+
+    CF_STORAGE_URL=$(cat $tmp_headers | grep ^X-Storage-Url \
                                       | sed 's/.*: //' \
                                       | tr -d "\r\n")
-
-    CF_STORAGE_URL=$(echo "$auth_resp" | grep ^X-Storage-Url \
-                                       | sed 's/.*: //' \
-                                       | tr -d "\r\n")
 
     if [[ -z $CF_AUTH_TOKEN || -z $CF_STORAGE_URL ]]; then
         bf_die "Unable to authenticate to CloudFiles"
     fi
 
     cf_handle_snet
+    rm $tmp_headers
 }
 
 
