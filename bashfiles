@@ -90,8 +90,11 @@ SETTINGS
     BF_SMART_COMPLETION
                     Whether to enable bash completion against object and
                     container-names
+    CF_USER         CloudFiles username
+    CF_API_KEY      CloudFiles API Key
+    CF_AUTH_URL     CloudFiles authentication URL
+    CF_SERVICENET   Use Rackspace's ServiceNET network
 
-$CF_SETTINGS_HELP
 FILES
 
     ~/.bashfiles
@@ -512,14 +515,6 @@ CF_DEFAULT_AUTH_URL_UK=https://lon.auth.api.rackspacecloud.com/v1.0
 CF_DEFAULT_SEGMENT_SIZE=5368709120
 CF_DD_BLOCK_SIZE=1024
 CF_INITIALIZED=0
-
-
-IFS='' read -r -d '' CF_SETTINGS_HELP <<'EOF'
-    CF_USER         CloudFiles username
-    CF_API_KEY      CloudFiles API Key
-    CF_AUTH_URL     CloudFiles authentication URL
-    CF_SERVICENET   Use Rackspace's ServiceNET network
-EOF
 
 
 function cf_handle_snet() {
