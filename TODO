@@ -11,13 +11,13 @@ BUGS
 FEATURES
 ========
 
-- Make container public
-
-- Switch to SLO large-files?
-
 - Add context-help:
     - bashfiles help (general help)
     - bashfiles help get (get specific help)
+
+- Make container public
+
+- Switch to SLO large-files?
 
 - Add Cloudfiles v2 Auth
 

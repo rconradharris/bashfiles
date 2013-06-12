@@ -39,9 +39,6 @@ DESCRIPTION
     You can pass settings to `bashfiles` via environment variables or by
     defining a configuration file located at `~/.bashfiles`.
 
-    `bashfiles` supports bash-completion against commands, container and
-    object-names, and can be enabled with the BF_SMART_COMPLETION=1 setting.
-
 OPTIONS
 
     -b      Print bash completion script
@@ -65,6 +62,7 @@ COMMANDS
                 add     Add endpoint
                 ls      List all endpoints
                 rm      Remove endpoint
+                show    Show endpoint settings
 
     get     Download file (-f overwrites existing file, if present)
 
@@ -95,9 +93,6 @@ COMMANDS
 
 SETTINGS
 
-    BF_SMART_COMPLETION
-                    Whether to enable bash completion against object and
-                    container-names
     CF_USER         CloudFiles username
     CF_API_KEY      CloudFiles API Key
     CF_AUTH_URL     CloudFiles authentication URL
@@ -359,9 +354,7 @@ function bf_save_endpoint_config() {
         return 1
     fi
 
-    cat > $BF_ENDPOINT_CONFIG <<EOF
-BF_SMART_COMPLETION=$BF_SMART_COMPLETION
-EOF
+    touch $BF_ENDPOINT_CONFIG
 
     cf_save_endpoint_config
 }
@@ -381,22 +374,9 @@ function bf_load_endpoint_config_interactive() {
         return
     fi
 
-    # Only ask about smart completion if we were already asking for USER
-    # or API_KEY
-    if [[ -z $BF_SMART_COMPLETION ]]; then
-        local smart_completion=$(bf_ask_with_default y \
-                     'Enable container and object name completion [Y/n]? ')
+    local save=`bf_ask_with_default N 'Save settings [y/N]? '`
 
-        if [[ $smart_completion = 'y' || $smart_completion = 'Y' ]]; then
-            BF_SMART_COMPLETION=1
-        else
-            BF_SMART_COMPLETION=0
-        fi
-    fi
-
-    local save_creds=`bf_ask_with_default N 'Save settings [y/N]? '`
-
-    if [[ $save_creds = 'y' || $save_creds = 'Y' ]]; then
+    if [[ $save = 'y' || $save = 'Y' ]]; then
         bf_save_endpoint_config
     fi
 }
@@ -482,6 +462,17 @@ function cmd_endpoint_rm() {
 }
 
 
+function cmd_endpoint_show() {
+    local endpoint=$1
+
+    if [[ -z $endpoint ]]; then
+        bf_usage 'endpoint show <endpoint>'
+    fi
+
+    cat $BF_ENDPOINTS_DIR/$endpoint
+}
+
+
 function cmd_endpoint() {
     local subcommand=$1
     shift
@@ -490,7 +481,8 @@ function cmd_endpoint() {
         add)    cmd_endpoint_add    $@;;
         ls)     cmd_endpoint_ls     $@;;
         rm)     cmd_endpoint_rm     $@;;
-        *)      bf_usage 'endpoint [add|ls|rm]';;
+        show)   cmd_endpoint_show   $@;;
+        *)      bf_usage 'endpoint [add|ls|rm|show]';;
     esac
 }
 
@@ -524,16 +516,12 @@ function cmd_ls() {
 
     cat $tmp_file
 
-    if [[ $BF_SMART_COMPLETION -eq 1 ]]; then
-        mkdir -p $BF_COMPLETION_DIR
-
-        if [[ -z $container ]]; then
-            mv $tmp_file $BF_COMPLETION_DIR/container-names
-        else
-            mv $tmp_file $BF_COMPLETION_DIR/$container-object-names
-        fi
+    # Refresh bash-completion cache
+    mkdir -p $BF_COMPLETION_DIR
+    if [[ -z $container ]]; then
+        mv $tmp_file $BF_COMPLETION_DIR/container-names
     else
-        rm $tmp_file
+        mv $tmp_file $BF_COMPLETION_DIR/$container-object-names
     fi
 }
 
