@@ -26,6 +26,10 @@ Wget::
 Examples
 ========
 
+Download::
+
+    CF_USER=foo CF_API_KEY=bar bashfiles get my-container object1
+
 Download multiple objects::
 
     bashfiles get my-container object1 object2

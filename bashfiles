@@ -1101,6 +1101,12 @@ EOF
 function cf_load_endpoint_config_interactive() {
     local ret=1
 
+    if [[ -n $CF_USER && -n $CF_API_KEY ]]; then
+        # If CF_USER and CF_API_KEY are set then we don't need interactive
+        # mode
+        return $ret
+    fi
+
     if [[ -z $CF_USER ]]; then
         ret=0
         bf_ask_required 'CF_USER' 'CloudFiles Username: '

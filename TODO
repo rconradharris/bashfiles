@@ -23,6 +23,15 @@ FEATURES
 
 - Add CHANGELOG
 
+- INI style config
+    [default]
+    CF_USER=foo
+
+    [endpoint2]
+    CF_USER=foo
+
+- Ability to bind an endpoint to a container
+
 
 TEST
 ====
