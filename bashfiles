@@ -1065,52 +1065,29 @@ function cf_init() {
 
 while getopts 'bfhi:o:qt:v' opt; do
     case $opt in
-        b)
-            bf_bash_completion;;
-        f)
-            OPT_FORCE=1;;
-        h)
-            bf_help;;
-        i)
-            OPT_INPUT=$OPTARG;;
-        o)
-            OPT_OUTPUT=$OPTARG;;
-        q)
-            OPT_QUIET=1;;
-        t)
-            OPT_CONTENT_TYPE=$OPTARG;;
-        v)
-            bf_version;;
-        *)
-            bf_general_usage;;
+        b) bf_bash_completion;;
+        f) OPT_FORCE=1;;
+        h) bf_help;;
+        i) OPT_INPUT=$OPTARG;;
+        o) OPT_OUTPUT=$OPTARG;;
+        q) OPT_QUIET=1;;
+        t) OPT_CONTENT_TYPE=$OPTARG;;
+        v) bf_version;;
+        *) bf_general_usage;;
     esac
 done
-
 shift $(($OPTIND - 1))
-
 cmd=$1
-
 shift
-
 case $cmd in
-    cp)
-        cmd_cp $@;;
-    ls)
-        cmd_ls $@;;
-    get)
-        cmd_get $@;;
-    mkdir)
-        cmd_mkdir $@;;
-    mv)
-        cmd_mv $@;;
-    put)
-        cmd_put $@;;
-    rm)
-        cmd_rm $@;;
-    rmdir)
-        cmd_rmdir $@;;
-    stat)
-        cmd_stat $@;;
-    *)
-        bf_general_usage;;
+    cp)     cmd_cp      $@;;
+    ls)     cmd_ls      $@;;
+    get)    cmd_get     $@;;
+    mkdir)  cmd_mkdir   $@;;
+    mv)     cmd_mv      $@;;
+    put)    cmd_put     $@;;
+    rm)     cmd_rm      $@;;
+    rmdir)  cmd_rmdir   $@;;
+    stat)   cmd_stat    $@;;
+    *)      bf_general_usage;;
 esac
