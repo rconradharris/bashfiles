@@ -4,6 +4,8 @@
 BF_VERSION=0.1
 BF_PROG=`basename $0`
 BF_DEFAULT_CONTENT_TYPE=application/octet-stream
+BF_CONFIG_DIR=~/.$BF_PROG
+BF_ENDPOINTS_DIR=$BF_CONFIG_DIR/endpoints
 
 OPT_CONTENT_TYPE=
 OPT_ENDPOINT=default
@@ -57,6 +59,12 @@ COMMANDS
     cp      Server-side object copy
 
             -f Overwrite destination object if exists
+
+    endpoint Manage endpoints
+
+                add     Add endpoint
+                ls      List all endpoints
+                rm      Remove endpoint
 
     get     Download file (-f overwrites existing file, if present)
 
@@ -140,7 +148,7 @@ function _bf_completer() {
     COMPREPLY=()
 
     local OPTIONS=(-b -e -f -h -i -o -q -t -v)
-    local COMMANDS=(cp get ls mkdir mv put rm rmdir stat)
+    local COMMANDS=(cp endpoint get ls mkdir mv put rm rmdir stat)
 
     local cmd=
     local container_idx=
@@ -224,7 +232,8 @@ function bf_usage() {
 
 
 function bf_general_usage() {
-    bf_usage '<cp|get|ls|mkdir|mv|put|rm|rmdir|stat> [container] [object-name]'
+    bf_usage "<cp|endpoint|get|ls|mkdir|mv|put|rm|rmdir|stat> [container]" \
+             "[object-name]"
 }
 
 
@@ -394,8 +403,8 @@ function bf_load_endpoint_config_interactive() {
 
 
 function bf_load_endpoint_config() {
-    BF_ENDPOINT_CONFIG=~/.$BF_PROG/endpoints/$OPT_ENDPOINT
-    BF_COMPLETION_DIR=~/.$BF_PROG/completion/$OPT_ENDPOINT
+    BF_ENDPOINT_CONFIG=$BF_ENDPOINTS_DIR/$OPT_ENDPOINT
+    BF_COMPLETION_DIR=$BF_CONFIG_DIR/completion/$OPT_ENDPOINT
 
     bf_load_endpoint_config_file
     bf_load_endpoint_config_interactive
@@ -434,6 +443,55 @@ function cmd_cp() {
     fi
 
     cf_cp $src_container $src_obj_name $dst_container $dst_obj_name
+}
+
+
+function cmd_endpoint_add() {
+    local endpoint=$1
+
+    if [[ -z $endpoint ]]; then
+        bf_usage 'endpoint add <endpoint>'
+    fi
+
+    OPT_ENDPOINT=$endpoint
+    bf_load_endpoint_config
+}
+
+
+function cmd_endpoint_ls() {
+    # NOTE: cat is needed here so that we get one entry per line. This works
+    # by diguising from `ls` the fact that we're actually a tty
+    ls $BF_ENDPOINTS_DIR | cat
+}
+
+
+function cmd_endpoint_rm() {
+    local endpoint=$1
+
+    if [[ -z $endpoint ]]; then
+        bf_usage 'endpoint rm <endpoint>'
+    fi
+
+    rm $BF_ENDPOINTS_DIR/$endpoint
+
+    local completion_dir=$BF_CONFIG_DIR/completion/$endpoint
+    if [[ -d $completion_dir ]]; then
+        rm $completion_dir/*
+        rmdir $completion_dir
+    fi
+}
+
+
+function cmd_endpoint() {
+    local subcommand=$1
+    shift
+
+    case $subcommand in
+        add)    cmd_endpoint_add    $@;;
+        ls)     cmd_endpoint_ls     $@;;
+        rm)     cmd_endpoint_rm     $@;;
+        *)      bf_usage 'endpoint [add|ls|rm]';;
+    esac
 }
 
 
@@ -1119,14 +1177,15 @@ shift $(($OPTIND - 1))
 cmd=$1
 shift
 case $cmd in
-    cp)     cmd_cp      $@;;
-    ls)     cmd_ls      $@;;
-    get)    cmd_get     $@;;
-    mkdir)  cmd_mkdir   $@;;
-    mv)     cmd_mv      $@;;
-    put)    cmd_put     $@;;
-    rm)     cmd_rm      $@;;
-    rmdir)  cmd_rmdir   $@;;
-    stat)   cmd_stat    $@;;
+    cp)         cmd_cp          $@;;
+    endpoint)   cmd_endpoint    $@;;
+    ls)         cmd_ls          $@;;
+    get)        cmd_get         $@;;
+    mkdir)      cmd_mkdir       $@;;
+    mv)         cmd_mv          $@;;
+    put)        cmd_put         $@;;
+    rm)         cmd_rm          $@;;
+    rmdir)      cmd_rmdir       $@;;
+    stat)       cmd_stat        $@;;
     *)      bf_general_usage;;
 esac

@@ -1,19 +1,15 @@
 BUGS
 ====
 
-- bash-completer needs to become endpoint aware by scanning for -e <ENDPOINT>
+- bash-completion:
+    - Become aware of -e <ENDPOINT> argument
+    - Add endpoint sub-commands
 
 - rmdir: Handle pagination for clear_container
 
 
 FEATURES
 ========
-
-CRUD:
-
-bashfiles endpoint ls
-bashfiles endpoint add bar
-bashfiles endpoint rm bar
 
 - Make container public
 
