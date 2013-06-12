@@ -3,8 +3,56 @@ BUGS
 
 - rmdir: Handle pagination for clear_container
 
+
 FEATURES
 ========
+
+- Named-endpoints
+
+# Use default endpoint
+bashfiles get container foo
+
+# Use 'bar' endpoint
+bashfiles -e bar get container foo
+
+Option 1
+
+~/.bashfiles
+[default]
+BF_SERVICE=CF
+CF_USERNAME=myuser
+
+Option 2
+
+~/.bashfiles-config/
+    default.endpoint
+        BF_SERVICE=CF
+        CF_USERNAME=myuser
+
+
+Option 3
+
+~/.bashfiles-config/
+    endpoints/
+        default/
+            config
+                BF_SERVICE=CF
+                CF_USERNAME=myuser
+
+            completion/
+                container-names
+                <container>-object-names
+
+
+CRUD:
+
+bashfiles endpoints ls
+bashfiles endpoints add bar
+bashfiles endpoints rm bar
+
+
+
+
 
 - Make container public
 
@@ -14,28 +62,9 @@ FEATURES
     - bashfiles help (general help)
     - bashfiles help get (get specific help)
 
-- Add V2 AUTH
-
-DOC
-===
-
-- Add curl bashfiles.org support
-    - curl bashfiles.org/stable
-    - curl bashfiles.org/latest
-    - curl bashfiles.org switches on user-agent
-        - curl and wget reply with stable
-        - everything else replies with redirect to github
-
-- Add License
-    - Add LICENSE file
-    - Add to README
+- Add Cloudfiles v2 Auth
 
 - Add CHANGELOG
-
-- Add examples to README
-    - multiple file handling
-    - output stdout
-    - mv
 
 
 TEST
