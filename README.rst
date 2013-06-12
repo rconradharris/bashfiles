@@ -5,6 +5,24 @@ bashfiles
 CloudFiles with bash+curl
 
 
+Fetch Script
+============
+
+Getting `bashfiles` on to a machine is as easy as using ``curl`` or ``wget``.
+
+Curl::
+
+    curl bashfiles.org > bashfiles
+    chmod +x bashfiles
+    ./bashfiles -h
+
+Wget::
+
+    wget bashfiles.org/bashfiles
+    chmod +x bashfiles
+    ./bashfiles -h
+
+
 Examples
 ========
 
