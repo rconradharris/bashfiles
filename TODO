@@ -11,32 +11,21 @@ BUGS
 - rmdir: Handle pagination for clear_container
 
 
-CLEANUP
-=======
-
-
-
 FEATURES
 ========
 
 - Make container public
-
-- Create install script to
-    - Install base script
-    - Install bash-completion hook (if possible)
-    - Register man page
-
-- Allow put to come from stdin
 
 - cat cmd?
 
 - Switch to SLO large-files?
 
 - Add context-help:
-    - cloudfiles.sh help (general help)
-    - cloudfiles.sh help get (get specific help)
+    - bashfiles help (general help)
+    - bashfiles help get (get specific help)
 
 - Add V2 AUTH
+
 
 DOC
 ===

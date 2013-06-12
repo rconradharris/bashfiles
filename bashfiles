@@ -5,9 +5,11 @@ BF_VERSION=0.1
 BF_PROG=`basename $0`
 BF_CONFIG=~/.$BF_PROG
 BF_COMPLETION_DIR=~/.$BF_PROG-completion
+BF_DEFAULT_CONTENT_TYPE=application/octet-stream
 
 OPT_CONTENT_TYPE=
 OPT_FORCE=0
+OPT_INPUT=
 OPT_OUTPUT=
 OPT_QUIET=0
 
@@ -42,9 +44,10 @@ DESCRIPTION
 OPTIONS
 
     -b      Print bash completion script
-    -h      Print help
     -f      Force
-    -o      Output filename ('-' to output to stdout)
+    -h      Print help
+    -i      Input filename (- for stdin)
+    -o      Output filename (- for stdout)
     -q      Quiet mode
     -t      Specify Content-Type for an upload (autodetect by default)
     -v      Print version
@@ -112,7 +115,7 @@ function _bf_match() {
 function _bf_completer() {
     COMPREPLY=()
 
-    local OPTIONS=(-f -h -o -q -t -v)
+    local OPTIONS=(-b -f -h -i -o -q -t -v)
     local COMMANDS=(cp get ls mkdir mv put rm rmdir stat)
     local COMPLETION_DIR=~/.bashfiles-completion
 
@@ -405,13 +408,13 @@ function cmd_mv() {
 function cmd_put() {
     local container=$1
     shift
-    local filenames=$@
+    local obj_names=$@
 
-    if [[ -z $container || -z $filenames ]]; then
-        bf_usage 'put <container> <filenames>'
+    if [[ -z $container || -z $obj_names ]]; then
+        bf_usage 'put <container> <object-names>'
     fi
 
-    cf_put $container $filenames
+    cf_put $container $obj_names
 }
 
 
@@ -719,10 +722,62 @@ function cf_put_large_object() {
 }
 
 
+function cf_put_stream() {
+    local container=$1
+    local obj_name=$2
+    local opt_silent=$3
+
+    if [[ -n $OPT_CONTENT_TYPE ]]; then
+        local content_type=$OPT_CONTENT_TYPE
+    else
+        local content_type=$BF_DEFAULT_CONTENT_TYPE
+    fi
+
+    cf_curl $container/$obj_name --request PUT \
+            --header "Content-Type: $content_type" \
+            --upload-file - $opt_silent
+}
+
+
+function cf_put_file() {
+    local container=$1
+    local obj_name=$2
+    local opt_silent=$3
+
+    local filename=$obj_name
+
+    bf_assert_file_exists $filename
+
+    if [[ -n $CF_SEGMENT_SIZE ]];  then
+        local segment_size=$CF_SEGMENT_SIZE
+    else
+        local segment_size=$CF_DEFAULT_SEGMENT_SIZE
+    fi
+
+    if [[ -n $OPT_CONTENT_TYPE ]]; then
+        local content_type=$OPT_CONTENT_TYPE
+    else
+        local content_type=`bf_autodetect_filetype $filename`
+    fi
+
+    local size=`bf_size $filename`
+
+    if [[ $size -gt $segment_size ]]; then
+        cf_put_large_object $container $filename $obj_name \
+                            "$content_type" $size "$opt_silent" \
+                            $segment_size
+    else
+        cf_put_small_object $container $filename $obj_name \
+                            "$content_type" $size "$opt_silent" \
+                            $segment_size
+    fi
+}
+
+
 function cf_put() {
     local container=$1
     shift
-    local filenames=$@
+    local obj_names=$@
 
     if [[ $OPT_QUIET -eq 1 ]]; then
         local opt_silent=--silent
@@ -730,33 +785,11 @@ function cf_put() {
         local opt_silent=
     fi
 
-    if [[ -z $CF_SEGMENT_SIZE ]];  then
-        local segment_size=$CF_DEFAULT_SEGMENT_SIZE
-    else
-        local segment_size=$CF_SEGMENT_SIZE
-    fi
-
-    for filename in $filenames; do
-        bf_assert_file_exists $filename
-
-        local obj_name=`basename $filename`
-
-        if [[ -n $OPT_CONTENT_TYPE ]]; then
-            local content_type=$OPT_CONTENT_TYPE
+    for obj_name in $obj_names; do
+        if [[ $OPT_INPUT == - ]]; then
+            cf_put_stream $container $obj_name "$opt_silent"
         else
-            local content_type=`bf_autodetect_filetype $filename`
-        fi
-
-        local size=`bf_size $filename`
-
-        if [[ $size -gt $segment_size ]]; then
-            cf_put_large_object $container $filename $obj_name \
-                                "$content_type" $size "$opt_silent" \
-                                $segment_size
-        else
-            cf_put_small_object $container $filename $obj_name \
-                                "$content_type" $size "$opt_silent" \
-                                $segment_size
+            cf_put_file $container $obj_name "$opt_silent"
         fi
     done
 }
@@ -941,7 +974,7 @@ function cf_init() {
 #############################################################################
 
 
-while getopts 'bfho:qt:v' opt; do
+while getopts 'bfhi:o:qt:v' opt; do
     case $opt in
         b)
             bf_bash_completion;;
@@ -949,6 +982,8 @@ while getopts 'bfho:qt:v' opt; do
             OPT_FORCE=1;;
         h)
             bf_help;;
+        i)
+            OPT_INPUT=$OPTARG;;
         o)
             OPT_OUTPUT=$OPTARG;;
         q)

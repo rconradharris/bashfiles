@@ -55,4 +55,4 @@ Credit
 Authors
 =======
 
-    * Rick Harris
+* Rick Harris
