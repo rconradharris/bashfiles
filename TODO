@@ -1,10 +1,7 @@
 BUGS
 ====
 
-- Do not overwrite objects unless -f is set
-    - put
-    - cp
-    - mv
+- Add use -f to file asserts
 
 - rmdir: Handle pagination for clear_container
 

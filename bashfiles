@@ -364,6 +364,10 @@ function cmd_cp() {
                  ' <dst-container> <dst-object-name>'
     fi
 
+    if [[ $OPT_FORCE -ne 1 ]]; then
+        cf_assert_objects_missing $dst_container $dst_obj_name
+    fi
+
     cf_cp $src_container $src_obj_name $dst_container $dst_obj_name
 }
 
@@ -425,6 +429,10 @@ function cmd_mv() {
                  ' <dst-container> <dst-object-name>'
     fi
 
+    if [[ $OPT_FORCE -ne 1 ]]; then
+        cf_assert_objects_missing $dst_container $dst_obj_name
+    fi
+
     cf_mv $src_container $src_obj_name $dst_container $dst_obj_name
 }
 
@@ -440,6 +448,10 @@ function cmd_put() {
 
     if [[ $OPT_INPUT == - && $# -gt 1 ]]; then
         bf_die "-i can only be used to upload a single file"
+    fi
+
+    if [[ $OPT_FORCE -ne 1 ]]; then
+        cf_assert_objects_missing $container $obj_names
     fi
 
     cf_put $container $obj_names
@@ -552,7 +564,7 @@ function cf_check_code() {
 }
 
 
-function cf_curl() {
+function cf_curl_unsafe() {
     local url=`bf_urlencode $1`
     shift
 
@@ -560,6 +572,12 @@ function cf_curl() {
     local code=$(curl --fail --write-out '%{http_code}' \
                       --header "X-Auth-Token: $CF_AUTH_TOKEN" \
                       "$@" "$CF_STORAGE_URL/$url")
+    echo $code
+}
+
+
+function cf_curl() {
+    local code=`cf_curl_unsafe "$@"`
     cf_check_code $code
 }
 
@@ -896,6 +914,50 @@ function cf_stat() {
             cf_stat_thing $container/$obj_name
         done
     fi
+}
+
+
+function cf_object_exists() {
+    local container=$1
+    local obj_name=$2
+
+    local code=$(cf_curl_unsafe $container/$obj_name --silent \
+                                --output /dev/null --head)
+
+    if [[ $code -eq 204 ]]; then
+        return 0
+    elif [[ $code -eq 200 ]]; then
+        # This appears to be a bug in CloudFiles, 200 should not be returned
+        # when entity body is absent
+        return 0
+    elif [[ $code -eq 404 ]]; then
+        return 1
+    else
+        bf_die "Invalid error code $code"
+    fi
+}
+
+
+function cf_assert_objects_missing() {
+    local container=$1
+    shift
+    local obj_names=$@
+
+    for obj_name in $obj_names; do
+        local code=$(cf_curl_unsafe $container/$obj_name --silent \
+                                    --output /dev/null --head)
+
+        if [[ $code -eq 200 || $code -eq 204 ]]; then
+            # The fact that CloudFiles returns a 200 here even though there is
+            # no entity body is a bug per the HTTP spec, should be 204
+            # instead.
+            bf_die "Object '$obj_name' already exists, use -f to overwrite"
+        elif [[ $code -eq 404 ]]; then
+            continue
+        else
+            bf_die "Invalid error code $code"
+        fi
+    done
 }
 
 
