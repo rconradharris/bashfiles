@@ -9,6 +9,8 @@ BUGS
 
 - All for-loop index variables need to be declared 'local'!
 
+- Rework urlencoding of container and object names
+
 FEATURES
 ========
 

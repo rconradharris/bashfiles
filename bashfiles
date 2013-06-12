@@ -765,12 +765,9 @@ function cf_get() {
         fi
 
         if [[ $filename == - ]]; then
-            # FIXME: unify with cf_curl
-            cf_auth
             container_name=`bf_urlencode $container_name`
             obj_name=`bf_urlencode $obj_name`
-            bf_curl $CF_STORAGE_URL/$container/$obj_name --silent \
-                    --header "X-Auth-Token: $CF_AUTH_TOKEN"
+            cf_request $container/$obj_name --silent
             continue
         elif [[ $OPT_FORCE -ne 1 ]]; then
             bf_assert_file_missing $filename
@@ -864,6 +861,9 @@ function cf_put_large_object() {
     local left=$size
     local segment_num=1
     local skip=0
+    local length=
+    local seg_name=
+    local nblocks=
 
     local seg_container=${obj_name}_segments
     local seg_prefix="$seg_container/$obj_name/`date +%s`/$size/"
@@ -874,30 +874,23 @@ function cf_put_large_object() {
 
     while [[ $left -gt 0 ]]; do
         if [[ $left -ge $segment_size ]]; then
-            local length=$segment_size
+            length=$segment_size
         else
-            local length=$left
+            length=$left
         fi
 
-        local nblocks=`bf_compute_num_blocks $length $CF_DD_BLOCK_SIZE`
+        nblocks=`bf_compute_num_blocks $length $CF_DD_BLOCK_SIZE`
 
         bf_log "Uploading segment $segment_num/$total_segments"
 
-        # FIXME: unify this with cf_request_check_ok
-        cf_auth
-        local seg_name="$seg_prefix$(printf '%08d' $segment_num)"
+        seg_name="$seg_prefix$(printf '%08d' $segment_num)"
         seg_name=`bf_urlencode $seg_name`
-        local code=$(
-            dd if=$filename bs=$CF_DD_BLOCK_SIZE count=$nblocks skip=$skip \
-                2> /dev/null | \
-            bf_curl $CF_STORAGE_URL/$seg_name $opt_silent \
-                    --write-out '%{http_code}' \
-                    --header "X-Auth-Token: $CF_AUTH_TOKEN" \
-                    --upload-file - \
-                    --request PUT \
-                    --header "Content-Type: $content_type")
 
-        bf_check_ok $code
+        dd if=$filename bs=$CF_DD_BLOCK_SIZE count=$nblocks skip=$skip \
+                        2> /dev/null | \
+            cf_request_check_ok $seg_name $opt_silent --upload-file - \
+                                --request PUT \
+                                --header "Content-Type: $content_type"
 
         bf_log ""
 
