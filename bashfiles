@@ -331,7 +331,7 @@ function bf_autodetect_filetype() {
 function bf_assert_file_missing() {
     local filename=$1
     if [[ -e $filename ]]; then
-        bf_die "File '$filename' already exists"
+        bf_die "File '$filename' already exists, use -f to overwrite"
     fi
 }
 
@@ -379,6 +379,10 @@ function cmd_get() {
 
     if [[ -z $container || -z $obj_names ]]; then
         bf_usage 'get <container> <object-names>'
+    fi
+
+    if [[ -n $OPT_OUTPUT && $# -gt 1 ]]; then
+        bf_die "-o can only be used to download a single file"
     fi
 
     cf_get $container $obj_names
@@ -446,7 +450,7 @@ function cmd_put() {
         bf_usage 'put <container> <object-names>'
     fi
 
-    if [[ $OPT_INPUT == - && $# -gt 1 ]]; then
+    if [[ -n $OPT_INPUT && $# -gt 1 ]]; then
         bf_die "-i can only be used to upload a single file"
     fi
 

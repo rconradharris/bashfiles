@@ -5,6 +5,30 @@ bashfiles
 CloudFiles with bash+curl
 
 
+Examples
+========
+
+Download multiple objects::
+
+    bashfiles get my-container object1 object2
+
+Download to stdout::
+
+    bashfiles -o - get my-container my-object > output.data
+
+Upload from stdin::
+
+    bashfiles -i - put my-container my-object < input.data
+
+Move object to different container::
+
+    bashfiles mv my-container my-object different-container my-object
+
+Remove container with objects in it::
+
+    bashfiles -f rmdir my-container
+
+
 Features
 ========
 
