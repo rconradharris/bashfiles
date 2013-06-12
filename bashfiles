@@ -705,23 +705,24 @@ function cf_auth() {
 }
 
 
-function cf_curl_unsafe() {
-    local url=`bf_urlencode $1`
+function cf_request() {
+    local url=$1
     shift
 
     cf_auth
+    bf_curl "$CF_STORAGE_URL/$url" --header "X-Auth-Token: $CF_AUTH_TOKEN" \
+            "$@"
+}
 
-    local code=$(bf_curl "$CF_STORAGE_URL/$url" \
-                         --write-out '%{http_code}' \
-                         --header "X-Auth-Token: $CF_AUTH_TOKEN" \
-                         "$@")
 
+function cf_request_return_code() {
+    local code=`cf_request "$@" --write-out '%{http_code}'`
     echo $code
 }
 
 
-function cf_curl() {
-    local code=`cf_curl_unsafe "$@"`
+function cf_request_check_ok() {
+    local code=`cf_request_return_code "$@"`
     bf_check_ok $code
 }
 
@@ -732,8 +733,8 @@ function cf_cp() {
     local dst_container=$3
     local dst_obj_name=$4
 
-    cf_curl $src_container/$src_obj_name --silent --request COPY \
-            --header "Destination: /$dst_container/$dst_obj_name"
+    cf_request_check_ok $src_container/$src_obj_name --silent --request COPY \
+                        --header "Destination: /$dst_container/$dst_obj_name"
 }
 
 
@@ -741,7 +742,7 @@ function cf_ls() {
     local container=$1
     local tmp_file=$2
 
-    cf_curl "$container" --silent --output $tmp_file
+    cf_request_check_ok "$container" --silent --output $tmp_file
 }
 
 
@@ -778,8 +779,8 @@ function cf_get() {
         local output=.$filename.download
         local tmp_headers=`bf_mktemp`
 
-        cf_curl $container/$obj_name $opt_silent --dump-header $tmp_headers \
-                --output $output
+        cf_request_check_ok $container/$obj_name $opt_silent \
+                            --dump-header $tmp_headers --output $output
 
         local etag=$(cat $tmp_headers | grep --ignore-case ^Etag \
                                       | sed 's/.*: //' \
@@ -817,8 +818,8 @@ function cf_mkdir() {
     local container=
 
     for container in $containers; do
-        cf_curl $container --silent --output /dev/null --request PUT \
-                --upload-file /dev/null
+        cf_request_check_ok $container --silent --output /dev/null \
+                            --request PUT --upload-file /dev/null
     done
 }
 
@@ -845,9 +846,9 @@ function cf_put_small_object() {
 
     local etag=`bf_md5 $filename`
 
-    cf_curl $container/$obj_name --request PUT \
-            --header "Content-Type: $content_type" \
-            --header "ETag: $etag" --upload-file $filename $opt_silent
+    cf_request_check_ok $container/$obj_name $opt_silent --request PUT \
+                        --header "Content-Type: $content_type" \
+                        --header "ETag: $etag" --upload-file $filename
 }
 
 
@@ -882,7 +883,7 @@ function cf_put_large_object() {
 
         bf_log "Uploading segment $segment_num/$total_segments"
 
-        # FIXME: unify this with cf_curl
+        # FIXME: unify this with cf_request_check_ok
         cf_auth
         local seg_name="$seg_prefix$(printf '%08d' $segment_num)"
         seg_name=`bf_urlencode $seg_name`
@@ -906,10 +907,10 @@ function cf_put_large_object() {
     done
 
     bf_log "Uploading manifest for ${filename}"
-    cf_curl ${container}/${obj_name} --data-binary '' --output /dev/null \
-            --request PUT --header "Content-Type: ${content_type}" \
-            --header "X-Object-Manifest: ${seg_prefix}" \
-            $opt_silent
+    cf_request_check_ok ${container}/${obj_name} --data-binary '' \
+                        --output /dev/null --request PUT $opt_silent \
+                        --header "Content-Type: ${content_type}" \
+                        --header "X-Object-Manifest: ${seg_prefix}"
 }
 
 
@@ -924,9 +925,9 @@ function cf_put_stream() {
         local content_type=$BF_DEFAULT_CONTENT_TYPE
     fi
 
-    cf_curl $container/$obj_name --request PUT \
-            --header "Content-Type: $content_type" \
-            --upload-file - $opt_silent
+    cf_request_check_ok $container/$obj_name --request PUT \
+                        --header "Content-Type: $content_type" \
+                        --upload-file - $opt_silent
 }
 
 
@@ -992,7 +993,7 @@ function cf_rm() {
     local obj_names=$@
 
     for obj_name in $obj_names; do
-        cf_curl $container/$obj_name --silent --request DELETE
+        cf_request_check_ok $container/$obj_name --silent --request DELETE
     done
 }
 
@@ -1028,7 +1029,7 @@ function cf_rmdir() {
             cf_clear_container $container
         fi
 
-        cf_curl $container --silent --request DELETE
+        cf_request_check_ok $container --silent --request DELETE
     done
 }
 
@@ -1041,8 +1042,8 @@ function cf_stat_thing() {
     # NOTE: if we used --request HEAD instead of --head, curl would
     # expect Content-Length bytes to be sent as entity body which
     # would cause a timeout since HEAD requests don't result in a body
-    cf_curl "$thing" --silent --output /dev/null --head \
-            --dump-header $tmp_file
+    cf_request_check_ok "$thing" --silent --output /dev/null --head \
+                        --dump-header $tmp_file
 
     cat $tmp_file
     rm $tmp_file
@@ -1070,8 +1071,8 @@ function cf_object_exists() {
     local container=$1
     local obj_name=$2
 
-    local code=$(cf_curl_unsafe $container/$obj_name --silent \
-                                --output /dev/null --head)
+    local code=$(cf_request_return_code $container/$obj_name --silent \
+                                        --output /dev/null --head)
 
     if [[ $code -eq 204 ]]; then
         return 0
@@ -1093,8 +1094,8 @@ function cf_assert_objects_missing() {
     local obj_names=$@
 
     for obj_name in $obj_names; do
-        local code=$(cf_curl_unsafe $container/$obj_name --silent \
-                                    --output /dev/null --head)
+        local code=$(cf_request_return_code $container/$obj_name --silent \
+                                            --output /dev/null --head)
 
         if [[ $code -eq 200 || $code -eq 204 ]]; then
             # The fact that CloudFiles returns a 200 here even though there is
