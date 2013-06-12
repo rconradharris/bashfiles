@@ -3,7 +3,7 @@
 
 BF_VERSION=0.1
 BF_PROG=`basename $0`
-BF_CONFIG=~/.$BF_PROG
+BF_ENDPOINT_CONFIG=~/.$BF_PROG
 BF_COMPLETION_DIR=~/.$BF_PROG-completion
 BF_DEFAULT_CONTENT_TYPE=application/octet-stream
 
@@ -227,13 +227,6 @@ function bf_general_usage() {
 }
 
 
-function bf_load_config() {
-    if [[ -r $BF_CONFIG ]]; then
-        source $BF_CONFIG
-    fi
-}
-
-
 function bf_ask() {
     local question=$1
 
@@ -347,8 +340,64 @@ function bf_assert_file_exists() {
 }
 
 
+function bf_save_endpoint_config() {
+    if [[ -e $BF_ENDPOINT_CONFIG ]]; then
+        bf_warn "Cannot save, endpoing config '$BF_ENDPOINT_CONFIG'" \
+                "already exists"
+        return 1
+    fi
+
+    cat > $BF_ENDPOINT_CONFIG <<EOF
+BF_SMART_COMPLETION=$BF_SMART_COMPLETION
+EOF
+
+    cf_save_endpoint_config
+}
+
+
+function bf_load_endpoint_config_file() {
+    if [[ -r $BF_ENDPOINT_CONFIG ]]; then
+        source $BF_ENDPOINT_CONFIG
+    fi
+}
+
+
+function bf_load_endpoint_config_interactive() {
+    cf_load_endpoint_config_interactive
+
+    if [[ $? -ne 0 ]]; then
+        return
+    fi
+
+    # Only ask about smart completion if we were already asking for USER
+    # or API_KEY
+    if [[ -z $BF_SMART_COMPLETION ]]; then
+        local smart_completion=$(bf_ask_with_default y \
+                     'Enable container and object name completion [Y/n]? ')
+
+        if [[ $smart_completion = 'y' || $smart_completion = 'Y' ]]; then
+            BF_SMART_COMPLETION=1
+        else
+            BF_SMART_COMPLETION=0
+        fi
+    fi
+
+    local save_creds=`bf_ask_with_default N 'Save settings [y/N]? '`
+
+    if [[ $save_creds = 'y' || $save_creds = 'Y' ]]; then
+        bf_save_endpoint_config
+    fi
+}
+
+
+function bf_load_endpoint_config() {
+    bf_load_endpoint_config_file
+    bf_load_endpoint_config_interactive
+}
+
+
 function bf_init() {
-    cf_retrieve_credentials
+    bf_load_endpoint_config
 
     if [[ $BF_SMART_COMPLETION -eq 1 && ! -d $BF_COMPLETION_DIR ]]; then
         mkdir $BF_COMPLETION_DIR
@@ -576,8 +625,9 @@ function cf_auth() {
                                        | tr -d "\r\n")
 
     if [[ -z $CF_AUTH_TOKEN || -z $CF_STORAGE_URL ]]; then
-        echo "Unable to authenticate, set credentials in $BF_CONFIG or" \
-             " CF_USER and CF_API_KEY environment variables"
+        echo "Unable to authenticate, set credentials in" \
+             "$BF_ENDPOINT_CONFIG or CF_USER and CF_API_KEY" \
+             "environment variables"
         exit 1
     fi
 
@@ -991,41 +1041,31 @@ function cf_assert_objects_missing() {
 }
 
 
-function cf_save_config() {
-    if [[ -e $BF_CONFIG ]]; then
-        bf_warn "Cannot save credentials, file $BF_CONFIG already exists"
-        return
-    fi
-    cat > $BF_CONFIG <<EOF
+function cf_save_endpoint_config() {
+    cat >> $BF_ENDPOINT_CONFIG <<EOF
 CF_USER=$CF_USER
 CF_API_KEY=$CF_API_KEY
 CF_AUTH_URL=$CF_AUTH_URL
-BF_SMART_COMPLETION=$BF_SMART_COMPLETION
 CF_SERVICENET=$CF_SERVICENET
 EOF
 }
 
 
-function cf_retrieve_credentials() {
-    local creds_updated=0
-
-    # 1. Check config file
-    # 2. Check environment
-    # 3. Ask user
-    # 4. Optional: Save credentials to config file
-    bf_load_config
+function cf_load_endpoint_config_interactive() {
+    local ret=1
 
     if [[ -z $CF_USER ]]; then
+        ret=0
         bf_ask_required 'CF_USER' 'CloudFiles Username: '
-        creds_updated=1
     fi
 
     if [[ -z $CF_API_KEY ]]; then
+        ret=0
         bf_ask_required 'CF_API_KEY' 'CloudFiles API Key: '
-        creds_updated=1
     fi
 
     if [[ -z $CF_AUTH_URL ]]; then
+        ret=0
         local auth_url=$(bf_ask_with_default us \
                          'Location or Auth URL: [<url>/uk/US]: ')
 
@@ -1039,6 +1079,7 @@ function cf_retrieve_credentials() {
     fi
 
     if [[ -z $CF_SERVICENET ]]; then
+        ret=0
         local snet=`bf_ask_with_default n 'Use ServiceNET [y/N]? '`
 
         if [[ $snet = 'y' || $snet = 'Y' ]]; then
@@ -1048,26 +1089,7 @@ function cf_retrieve_credentials() {
         fi
     fi
 
-    if [[ $creds_updated -eq 1 ]]; then
-        # Only ask about smart completion if we were already asking for USER
-        # or API_KEY
-        if [[ -z $BF_SMART_COMPLETION ]]; then
-            local smart_completion=$(bf_ask_with_default y \
-                         'Enable container and object name completion [Y/n]? ')
-
-            if [[ $smart_completion = 'y' || $smart_completion = 'Y' ]]; then
-                BF_SMART_COMPLETION=1
-            else
-                BF_SMART_COMPLETION=0
-            fi
-        fi
-
-        local save_creds=`bf_ask_with_default N 'Save settings [y/N]? '`
-
-        if [[ $save_creds = 'y' || $save_creds = 'Y' ]]; then
-            cf_save_config
-        fi
-    fi
+    return $ret
 }
 
 

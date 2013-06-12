@@ -9,17 +9,6 @@ FEATURES
 
 
 - Named-endpoints
-    - bf_load_endpoint
-    - bf_load_endpoint_file
-    - bf_load_endpoint_interactive
-        - cf_load_endpoint_interactive
-        - s3_load_endpoint_interactive
-
-    - bf_save_endpoint
-        - cf_save_endpoint
-        - s3_save_endpoint
-
-    - Make credential request driver-specific
     - Move to new directory structure
 
 # Use default endpoint
