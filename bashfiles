@@ -10,7 +10,6 @@ OPT_CONTENT_TYPE=
 OPT_FORCE=0
 OPT_OUTPUT=
 OPT_QUIET=0
-OPT_SERVICENET=0
 
 CONST_ZERO_MD5=d41d8cd98f00b204e9800998ecf8427e
 
@@ -45,8 +44,7 @@ OPTIONS
     -h      Print help
     -f      Force
     -o      Output filename ('-' to output to stdout)
-    -q      Quiet mode (suppress progress meter)
-    -s      Use Rackspace's ServiceNET network
+    -q      Quiet mode
     -t      Specify Content-Type for an upload (autodetect by default)
     -v      Print version
 
@@ -400,7 +398,7 @@ EOF
 
 
 function cf_handle_snet() {
-    if [[ $OPT_SERVICENET -eq 1 || $CF_SERVICENET -eq 1 ]]; then
+    if [[ $CF_SERVICENET -eq 1 ]]; then
         CF_STORAGE_URL=${CF_STORAGE_URL/https:\/\//https://snet-}
         CF_STORAGE_URL=${CF_STORAGE_URL/http:\/\//http://snet-}
     fi
@@ -697,7 +695,7 @@ function cf_rm() {
 }
 
 
-function bf_clear_container() {
+function cf_clear_container() {
     local container=$1
 
     # TODO: handle pagination
@@ -710,8 +708,8 @@ function bf_clear_container() {
 
     for obj_name in $obj_names; do
         bf_log "Deleting $idx/$total_objects: $obj_name"
-        let idx++
         bf_rm $container $obj_name
+        let idx++
     done
 }
 
@@ -721,7 +719,7 @@ function cf_rmdir() {
 
     for container in $containers; do
         if [[ $OPT_FORCE -eq 1 ]]; then
-            bf_clear_container $container
+            cf_clear_container $container
         fi
 
         cf_curl $container --silent --request DELETE
@@ -865,7 +863,7 @@ function cf_init() {
 #############################################################################
 
 
-while getopts 'fho:qst:v' opt; do
+while getopts 'fho:qt:v' opt; do
     case $opt in
         f)
             OPT_FORCE=1;;
@@ -875,8 +873,6 @@ while getopts 'fho:qst:v' opt; do
             OPT_OUTPUT=$OPTARG;;
         q)
             OPT_QUIET=1;;
-        s)
-            OPT_SERVICENET=1;;
         t)
             OPT_CONTENT_TYPE=$OPTARG;;
         v)

@@ -1,20 +1,27 @@
 BUGS
 ====
 
-- What to do with -o with multiple files on get
-
-- rmdir: Handle pagination for clear_container
+- Fix put
 
 - Do not overwrite objects unless -f is set
     - put
     - cp
     - mv
 
+- What to do with -o with multiple files on get
+
+- rmdir: Handle pagination for clear_container
+
+
 CLEANUP
 =======
 
+
+
 FEATURES
 ========
+
+- Add -b option to print out bash-completion script
 
 - Make container public
 

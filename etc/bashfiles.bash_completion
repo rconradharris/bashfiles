@@ -24,7 +24,7 @@ function _bf_match() {
 function _bf_completer() {
     COMPREPLY=()
 
-    local OPTIONS=(-f -h -o -q -s -t -v)
+    local OPTIONS=(-f -h -o -q -t -v)
     local COMMANDS=(cp get ls mkdir mv put rm rmdir stat)
 
     local opts=
