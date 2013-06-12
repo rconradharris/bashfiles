@@ -1,6 +1,6 @@
-==============
-cloudfiles2.sh
-==============
+=========
+bashfiles
+=========
 
 CloudFiles with bash+curl
 
@@ -8,24 +8,21 @@ CloudFiles with bash+curl
 Features
 ========
 
-* Commands: cp, get, ls, mkdir, mv, put, rm, rmdir, stat
+* Single file using only bash, curl, and a few other POSIX utilities
 
-* Bash-completion against commands, container-names, and object-names (this
-  saves *so* much typing!)
+* Bash-completion against commands, container-names, and object-names
 
 * Config-file support (``~/.cloudfiles.sh``)
 
-* Progress meter (with -q to disable it)
+
+CloudFiles Specific Features
+============================
+
+* Large-Object Support (for files over 5 GB)
 
 * ServiceNET support
 
 * Checksum validation
-
-* Large-Object Support (Dynamic Large Objects)
-
-* Clear and remove a container with cloudfiles.sh -f rmdir <my-container>
-
-* Specify destination filename or output directly to stdout
 
 * Server-side Copy/Move
 
@@ -35,9 +32,9 @@ Enable Bash Completion
 
 Choose one of these::
 
-    bashfiles -b ~/bash_completion.d/bashfiles.bash_completion
+    bashfiles -b > ~/bash_completion.d/bashfiles.bash_completion
 
-    bashfiles -b /etc/bash_completion.d/bashfiles.bash_completion
+    bashfiles -b > /etc/bash_completion.d/bashfiles.bash_completion
 
     # Works for all shells
     bashfiles -b > __bfc && source __bfc && rm __bfc
@@ -49,14 +46,13 @@ Choose one of these::
 Credit
 ======
 
-cloudfiles2.sh is in large part based two other excellent scripts, Mike
-Barton's `cloudfiles.sh <https://github.com/redbo/cloudfiles.sh>`_ and Chmouel
-Boudjnah's `upcs <https://github.com/chmouel/upcs>`_.
+`bashfiles` is based in part on two other excellent scripts:
+
+* Mike Barton's `cloudfiles.sh <https://github.com/redbo/cloudfiles.sh>`_
+* Chmouel Boudjnah's `upcs <https://github.com/chmouel/upcs>`_
+
 
 Authors
 =======
 
     * Rick Harris
-    * Mike Barton
-    * Chmouel Boudjnah
-    * Jay Payne
