@@ -1,6 +1,6 @@
 * Use long-options whenever possible (e.g. prefer ``--upload-file`` over ``-T``)
 
-* Use ``local`` variables
+* Use ``local`` variables declared at top of function
 
 * Logic should be encapsulated in functions wherever possible (bears repeating
   since this is bash)

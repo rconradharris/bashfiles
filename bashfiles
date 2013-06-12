@@ -396,6 +396,23 @@ function bf_init() {
 }
 
 
+function bf_check_ok() {
+    local code=$1
+
+    if [[ $code -lt 200 || $code -gt 299 ]]; then
+        bf_die "Invalid response code: $code"
+    fi
+}
+
+
+function bf_curl() {
+    local url=$1
+    shift
+
+    curl --fail "$@" "$url"
+}
+
+
 #############################################################################
 #                                                                           #
 #                               Commands                                    #
@@ -640,6 +657,7 @@ function cmd_stat() {
 CF_DEFAULT_AUTH_URL_US=https://auth.api.rackspacecloud.com/v1.0
 CF_DEFAULT_AUTH_URL_UK=https://lon.auth.api.rackspacecloud.com/v1.0
 CF_DEFAULT_SEGMENT_SIZE=5368709120
+
 CF_DD_BLOCK_SIZE=1024
 
 
@@ -663,13 +681,12 @@ function cf_auth() {
     fi
 
     local code=$(
-        curl --silent --fail --write-out '%{http_code}' \
-             --dump-header $tmp_headers \
-             --header "X-Auth-Key: $CF_API_KEY" \
-             --header "X-Auth-User: $CF_USER" \
-             ${CF_AUTH_URL})
+        bf_curl ${CF_AUTH_URL} --silent --write-out '%{http_code}' \
+                               --dump-header $tmp_headers \
+                               --header "X-Auth-Key: $CF_API_KEY" \
+                               --header "X-Auth-User: $CF_USER")
 
-    cf_check_code $code
+    bf_check_ok $code
 
     CF_AUTH_TOKEN=$(cat $tmp_headers | grep ^X-Auth-Token \
                                      | sed 's/.*: //' \
@@ -688,30 +705,24 @@ function cf_auth() {
 }
 
 
-function cf_check_code() {
-    local code=$1
-
-    if [[ $code -lt 200 || $code -gt 299 ]]; then
-        bf_die "Invalid response code: $code"
-    fi
-}
-
-
 function cf_curl_unsafe() {
     local url=`bf_urlencode $1`
     shift
 
     cf_auth
-    local code=$(curl --fail --write-out '%{http_code}' \
-                      --header "X-Auth-Token: $CF_AUTH_TOKEN" \
-                      "$@" "$CF_STORAGE_URL/$url")
+
+    local code=$(bf_curl "$CF_STORAGE_URL/$url" \
+                         --write-out '%{http_code}' \
+                         --header "X-Auth-Token: $CF_AUTH_TOKEN" \
+                         "$@")
+
     echo $code
 }
 
 
 function cf_curl() {
     local code=`cf_curl_unsafe "$@"`
-    cf_check_code $code
+    bf_check_ok $code
 }
 
 
@@ -755,10 +766,10 @@ function cf_get() {
         if [[ $filename == - ]]; then
             # FIXME: unify with cf_curl
             cf_auth
+            container_name=`bf_urlencode $container_name`
             obj_name=`bf_urlencode $obj_name`
-            curl --fail --silent \
-                 --header "X-Auth-Token: $CF_AUTH_TOKEN" \
-                 $CF_STORAGE_URL/$container/$obj_name
+            bf_curl $CF_STORAGE_URL/$container/$obj_name --silent \
+                    --header "X-Auth-Token: $CF_AUTH_TOKEN"
             continue
         elif [[ $OPT_FORCE -ne 1 ]]; then
             bf_assert_file_missing $filename
@@ -803,6 +814,7 @@ function cf_get() {
 
 function cf_mkdir() {
     local containers=$@
+    local container=
 
     for container in $containers; do
         cf_curl $container --silent --output /dev/null --request PUT \
@@ -855,7 +867,7 @@ function cf_put_large_object() {
     local seg_container=${obj_name}_segments
     local seg_prefix="$seg_container/$obj_name/`date +%s`/$size/"
 
-    bf_mkdir ${seg_container}
+    cf_mkdir ${seg_container}
 
     local total_segments=`bf_compute_num_blocks $size $segment_size`
 
@@ -877,14 +889,14 @@ function cf_put_large_object() {
         local code=$(
             dd if=$filename bs=$CF_DD_BLOCK_SIZE count=$nblocks skip=$skip \
                 2> /dev/null | \
-            curl --fail --write-out '%{http_code}' $opt_silent \
-                 --header "X-Auth-Token: $CF_AUTH_TOKEN" \
-                 --upload-file - --request PUT \
-                 --header "Transfer-Encoding: chunked" \
-                 --header "Content-Type: $content_type" \
-                 $CF_STORAGE_URL/$seg_name)
+            bf_curl $CF_STORAGE_URL/$seg_name $opt_silent \
+                    --write-out '%{http_code}' \
+                    --header "X-Auth-Token: $CF_AUTH_TOKEN" \
+                    --upload-file - \
+                    --request PUT \
+                    --header "Content-Type: $content_type")
 
-        cf_check_code $code
+        bf_check_ok $code
 
         bf_log ""
 
@@ -987,9 +999,11 @@ function cf_rm() {
 
 function cf_clear_container() {
     local container=$1
+    local tmp_file=`bf_mktemp`
 
     # TODO: handle pagination
-    local obj_names=`bf_ls $container`
+    cf_ls $container $tmp_file
+    obj_names=`cat $tmp_file`
 
     # NOTE: tr -d is needed for Mac OS X, since wc -w has leading spaces
     # in output
@@ -998,9 +1012,11 @@ function cf_clear_container() {
 
     for obj_name in $obj_names; do
         bf_log "Deleting $idx/$total_objects: $obj_name"
-        bf_rm $container $obj_name
+        cf_rm $container $obj_name
         let idx++
     done
+
+    rm $tmp_file
 }
 
 

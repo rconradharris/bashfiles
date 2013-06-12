@@ -5,10 +5,15 @@ BUGS
     - Become aware of -e <ENDPOINT> argument
     - Add endpoint sub-commands
 
+- Saw this: Uploading segment 37/36
+
+- All for-loop index variables need to be declared 'local'!
+
 FEATURES
 ========
 
 - Add insecure mode
+    - Unify curl calls first
     - Add base_curl_opts
     - CF_INSECURE setting
     - Add to interactive config
