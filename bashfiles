@@ -202,7 +202,7 @@ function bf_warn() {
 
 
 function bf_die() {
-    echo "$@" >&2
+    echo "error: $@" >&2
     exit 1
 }
 
@@ -214,7 +214,8 @@ function bf_version() {
 
 
 function bf_usage() {
-    bf_die "usage: $BF_PROG [-fhqstv] $@"
+    echo "usage: $BF_PROG [-fhqstv] $@" >&2
+    exit 1
 }
 
 
@@ -243,7 +244,8 @@ function bf_ask_required() {
     local question=$2
     local reply=`bf_ask "$question"`
     if [[ -z $reply ]]; then
-        bf_die 'Aborted'
+        echo 'Aborted' >&2
+        exit 1
     fi
     eval $var="'$reply'"
 }
@@ -434,6 +436,10 @@ function cmd_put() {
 
     if [[ -z $container || -z $obj_names ]]; then
         bf_usage 'put <container> <object-names>'
+    fi
+
+    if [[ $OPT_INPUT == - && $# -gt 1 ]]; then
+        bf_die "-i can only be used to upload a single file"
     fi
 
     cf_put $container $obj_names
@@ -638,7 +644,7 @@ function cf_get() {
             mv $output $filename
         else
             rm $output
-            bf_die "ERROR: Failed checksum validation."
+            bf_die "Failed checksum validation."
         fi
     done
 }

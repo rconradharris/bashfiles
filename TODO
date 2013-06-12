@@ -6,8 +6,6 @@ BUGS
     - cp
     - mv
 
-- What to do with -o with multiple files on get
-
 - rmdir: Handle pagination for clear_container
 
 
@@ -15,8 +13,6 @@ FEATURES
 ========
 
 - Make container public
-
-- cat cmd?
 
 - Switch to SLO large-files?
 
