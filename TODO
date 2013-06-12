@@ -19,8 +19,6 @@ CLEANUP
 FEATURES
 ========
 
-- Add -b option to print out bash-completion script
-
 - Make container public
 
 - Create install script to

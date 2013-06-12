@@ -4,6 +4,7 @@ cloudfiles2.sh
 
 CloudFiles with bash+curl
 
+
 Features
 ========
 
@@ -27,6 +28,23 @@ Features
 * Specify destination filename or output directly to stdout
 
 * Server-side Copy/Move
+
+
+Enable Bash Completion
+======================
+
+Choose one of these::
+
+    bashfiles -b ~/bash_completion.d/bashfiles.bash_completion
+
+    bashfiles -b /etc/bash_completion.d/bashfiles.bash_completion
+
+    # Works for all shells
+    bashfiles -b > __bfc && source __bfc && rm __bfc
+
+    # Works in Bash 4.0 but not Bash 3.2
+    source /dev/stdin <(bashfiles -b)
+
 
 Credit
 ======
