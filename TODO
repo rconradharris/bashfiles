@@ -7,41 +7,47 @@ BUGS
 FEATURES
 ========
 
+
 - Named-endpoints
+    - bf_load_endpoint
+    - bf_load_endpoint_file
+    - bf_load_endpoint_interactive
+        - cf_load_endpoint_interactive
+        - s3_load_endpoint_interactive
+
+    - bf_save_endpoint
+        - cf_save_endpoint
+        - s3_save_endpoint
+
+    - Make credential request driver-specific
+    - Move to new directory structure
 
 # Use default endpoint
 bashfiles get container foo
 
+equivalent to
+
+bashfiles -e default get container foo
+
 # Use 'bar' endpoint
 bashfiles -e bar get container foo
 
-Option 1
+OPTION 2a
 
-~/.bashfiles
-[default]
-BF_SERVICE=CF
-CF_USERNAME=myuser
+- Source general config
+- Source endpoint config
 
-Option 2
-
-~/.bashfiles-config/
-    default.endpoint
-        BF_SERVICE=CF
-        CF_USERNAME=myuser
-
-
-Option 3
-
-~/.bashfiles-config/
+~/.bashfiles/
+    config
     endpoints/
+        default
+            CF_USERNAME=myuser
+        s3
+            S3_USERNAME=myuser
+    completion/
         default/
-            config
-                BF_SERVICE=CF
-                CF_USERNAME=myuser
-
-            completion/
-                container-names
-                <container>-object-names
+            container-names
+            <container>-object-names
 
 
 CRUD:
