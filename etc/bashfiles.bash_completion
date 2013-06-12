@@ -30,7 +30,7 @@ function _bf_completer() {
     local opts=
     local cur="${COMP_WORDS[COMP_CWORD]}"
     local cmd_idx=`_bf_match COMP_WORDS[@] COMMANDS[@]`
-    local cmd=COMP_WORDS[cmd_idx]}
+    local cmd=${COMP_WORDS[cmd_idx]}
     local container_idx=`expr $cmd_idx + 1`
 
     local COMPLETION_DIR=~/.bashfiles-completion
