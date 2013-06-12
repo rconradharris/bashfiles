@@ -6,6 +6,7 @@ BF_PROG=`basename $0`
 BF_DEFAULT_CONTENT_TYPE=application/octet-stream
 
 OPT_CONTENT_TYPE=
+OPT_ENDPOINT=default
 OPT_FORCE=0
 OPT_INPUT=
 OPT_OUTPUT=
@@ -42,6 +43,7 @@ DESCRIPTION
 OPTIONS
 
     -b      Print bash completion script
+    -e      Use endpoint
     -f      Force
     -h      Print help
     -i      Input filename (- for stdin)
@@ -95,8 +97,7 @@ SETTINGS
 
 FILES
 
-    ~/.bashfiles
-    ~/.bashfiles-completion
+    ~/.bashfiles/endpoints/*
 
 AUTHORS
 
@@ -138,7 +139,7 @@ function _bf_match() {
 function _bf_completer() {
     COMPREPLY=()
 
-    local OPTIONS=(-b -f -h -i -o -q -t -v)
+    local OPTIONS=(-b -e -f -h -i -o -q -t -v)
     local COMMANDS=(cp get ls mkdir mv put rm rmdir stat)
 
     local cmd=
@@ -217,7 +218,7 @@ function bf_version() {
 
 
 function bf_usage() {
-    echo "usage: $BF_PROG [-fhqstv] $@" >&2
+    echo "usage: $BF_PROG [-befhqstv] $@" >&2
     exit 1
 }
 
@@ -393,10 +394,8 @@ function bf_load_endpoint_config_interactive() {
 
 
 function bf_load_endpoint_config() {
-    local endpoint=default
-
-    BF_ENDPOINT_CONFIG=~/.$BF_PROG/endpoints/$endpoint
-    BF_COMPLETION_DIR=~/.$BF_PROG/completion/$endpoint
+    BF_ENDPOINT_CONFIG=~/.$BF_PROG/endpoints/$OPT_ENDPOINT
+    BF_COMPLETION_DIR=~/.$BF_PROG/completion/$OPT_ENDPOINT
 
     bf_load_endpoint_config_file
     bf_load_endpoint_config_interactive
@@ -1102,9 +1101,10 @@ function cf_load_endpoint_config_interactive() {
 #############################################################################
 
 
-while getopts 'bfhi:o:qt:v' opt; do
+while getopts 'be:fhi:o:qt:v' opt; do
     case $opt in
         b) bf_bash_completion;;
+        e) OPT_ENDPOINT=$OPTARG;;
         f) OPT_FORCE=1;;
         h) bf_help;;
         i) OPT_INPUT=$OPTARG;;

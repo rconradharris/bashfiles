@@ -58,6 +58,11 @@ Features
 
 * Content-Type detection
 
+* Multiple named endpoints with -e::
+
+  bashfiles -e my-production-account get contatiner object
+  bashfiles -e my-development-account get contatiner object
+
 
 CloudFiles Specific Features
 ============================

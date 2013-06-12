@@ -9,45 +9,11 @@ BUGS
 FEATURES
 ========
 
-- Named-endpoints
-
-# Use default endpoint
-bashfiles get container foo
-
-equivalent to
-
-bashfiles -e default get container foo
-
-# Use 'bar' endpoint
-bashfiles -e bar get container foo
-
-OPTION 2a
-
-- Source general config
-- Source endpoint config
-
-~/.bashfiles/
-    config
-    endpoints/
-        default
-            CF_USERNAME=myuser
-        s3
-            S3_USERNAME=myuser
-    completion/
-        default/
-            container-names
-            <container>-object-names
-
-
 CRUD:
 
-bashfiles endpoints ls
-bashfiles endpoints add bar
-bashfiles endpoints rm bar
-
-
-
-
+bashfiles endpoint ls
+bashfiles endpoint add bar
+bashfiles endpoint rm bar
 
 - Make container public
 
