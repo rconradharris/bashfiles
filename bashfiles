@@ -673,11 +673,11 @@ function cf_put() {
 
         if [[ $size -gt $segment_size ]]; then
             cf_put_large_object $container $filename $obj_name \
-                                "$content_type" $size $opt_silent \
+                                "$content_type" $size "$opt_silent" \
                                 $segment_size
         else
             cf_put_small_object $container $filename $obj_name \
-                                "$content_type" $size $opt_silent \
+                                "$content_type" $size "$opt_silent" \
                                 $segment_size
         fi
     done

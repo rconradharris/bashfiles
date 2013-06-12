@@ -26,16 +26,24 @@ function _bf_completer() {
 
     local OPTIONS=(-f -h -o -q -t -v)
     local COMMANDS=(cp get ls mkdir mv put rm rmdir stat)
-
-    local opts=
-    local cur="${COMP_WORDS[COMP_CWORD]}"
-    local cmd_idx=`_bf_match COMP_WORDS[@] COMMANDS[@]`
-    local cmd=${COMP_WORDS[cmd_idx]}
-    local container_idx=`expr $cmd_idx + 1`
-
     local COMPLETION_DIR=~/.bashfiles-completion
-    local container_fname=$COMPLETION_DIR/container-names
-    local object_fname=$COMPLETION_DIR/${COMP_WORDS[container_idx]}-object-names
+
+    local cmd=
+    local container_idx=
+    local container_fname=
+    local object_fname=
+    local opts=
+
+    local cur="${COMP_WORDS[COMP_CWORD]}"
+
+    local cmd_idx=`_bf_match COMP_WORDS[@] COMMANDS[@]`
+    if [[ $cmd_idx -ne -1 ]]; then
+        cmd=${COMP_WORDS[cmd_idx]}
+        container_idx=`expr $cmd_idx + 1`
+        container_fname=$COMPLETION_DIR/container-names
+        object_fname=$COMPLETION_DIR/${COMP_WORDS[container_idx]}-object-names
+    fi
+
 
     if [[ $cmd_idx -eq -1 && ${cur:0:1} == '-' ]]; then
         # Option (no command yet, starts with -)

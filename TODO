@@ -1,8 +1,6 @@
 BUGS
 ====
 
-- Fix put
-
 - Do not overwrite objects unless -f is set
     - put
     - cp
