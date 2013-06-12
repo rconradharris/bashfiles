@@ -3,8 +3,6 @@
 
 BF_VERSION=0.1
 BF_PROG=`basename $0`
-BF_ENDPOINT_CONFIG=~/.$BF_PROG
-BF_COMPLETION_DIR=~/.$BF_PROG-completion
 BF_DEFAULT_CONTENT_TYPE=application/octet-stream
 
 OPT_CONTENT_TYPE=
@@ -142,7 +140,6 @@ function _bf_completer() {
 
     local OPTIONS=(-b -f -h -i -o -q -t -v)
     local COMMANDS=(cp get ls mkdir mv put rm rmdir stat)
-    local COMPLETION_DIR=~/.bashfiles-completion
 
     local cmd=
     local container_idx=
@@ -151,6 +148,9 @@ function _bf_completer() {
     local opts=
 
     local cur="${COMP_WORDS[COMP_CWORD]}"
+
+    local endpoint=default
+    local COMPLETION_DIR=~/.bashfiles/completion/$endpoint
 
     local cmd_idx=`_bf_match COMP_WORDS[@] COMMANDS[@]`
     if [[ $cmd_idx -ne -1 ]]; then
@@ -341,8 +341,10 @@ function bf_assert_file_exists() {
 
 
 function bf_save_endpoint_config() {
+    mkdir -p `dirname $BF_ENDPOINT_CONFIG`
+
     if [[ -e $BF_ENDPOINT_CONFIG ]]; then
-        bf_warn "Cannot save, endpoing config '$BF_ENDPOINT_CONFIG'" \
+        bf_warn "Cannot save, endpoint config '$BF_ENDPOINT_CONFIG'" \
                 "already exists"
         return 1
     fi
@@ -391,6 +393,11 @@ function bf_load_endpoint_config_interactive() {
 
 
 function bf_load_endpoint_config() {
+    local endpoint=default
+
+    BF_ENDPOINT_CONFIG=~/.$BF_PROG/endpoints/$endpoint
+    BF_COMPLETION_DIR=~/.$BF_PROG/completion/$endpoint
+
     bf_load_endpoint_config_file
     bf_load_endpoint_config_interactive
 }
@@ -398,10 +405,6 @@ function bf_load_endpoint_config() {
 
 function bf_init() {
     bf_load_endpoint_config
-
-    if [[ $BF_SMART_COMPLETION -eq 1 && ! -d $BF_COMPLETION_DIR ]]; then
-        mkdir $BF_COMPLETION_DIR
-    fi
 }
 
 
@@ -465,6 +468,8 @@ function cmd_ls() {
     cat $tmp_file
 
     if [[ $BF_SMART_COMPLETION -eq 1 ]]; then
+        mkdir -p $BF_COMPLETION_DIR
+
         if [[ -z $container ]]; then
             mv $tmp_file $BF_COMPLETION_DIR/container-names
         else
@@ -625,10 +630,7 @@ function cf_auth() {
                                        | tr -d "\r\n")
 
     if [[ -z $CF_AUTH_TOKEN || -z $CF_STORAGE_URL ]]; then
-        echo "Unable to authenticate, set credentials in" \
-             "$BF_ENDPOINT_CONFIG or CF_USER and CF_API_KEY" \
-             "environment variables"
-        exit 1
+        bf_die "Unable to authenticate to CloudFiles"
     fi
 
     cf_handle_snet

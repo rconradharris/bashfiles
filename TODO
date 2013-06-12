@@ -1,15 +1,15 @@
 BUGS
 ====
 
+- bash-completer needs to become endpoint aware by scanning for -e <ENDPOINT>
+
 - rmdir: Handle pagination for clear_container
 
 
 FEATURES
 ========
 
-
 - Named-endpoints
-    - Move to new directory structure
 
 # Use default endpoint
 bashfiles get container foo
