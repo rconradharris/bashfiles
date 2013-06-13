@@ -170,7 +170,9 @@ function _bf_completer() {
         object_fname=$BF_COMPLETION_DIR/${COMP_WORDS[container_idx]}-object-names
     fi
 
-    if [[ $cmd_idx -eq -1 && ${cur:0:1} == '-' ]]; then
+    if [[ $prev == '-e' ]]; then
+        opts=`ls $BF_ENDPOINTS_DIR | tr '\n' ' '`
+    elif [[ $cmd_idx -eq -1 && ${cur:0:1} == '-' ]]; then
         # Option (no command yet, starts with -)
         opts="${OPTIONS[@]}"
     elif [[ $cmd_idx -eq -1 ]]; then
@@ -651,7 +653,6 @@ function cmd_stat() {
 CF_DEFAULT_AUTH_URL_US=https://auth.api.rackspacecloud.com/v1.0
 CF_DEFAULT_AUTH_URL_UK=https://lon.auth.api.rackspacecloud.com/v1.0
 CF_DEFAULT_SEGMENT_SIZE=5368709120
-
 CF_DD_BLOCK_SIZE=1024
 
 

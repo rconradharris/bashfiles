@@ -3,9 +3,6 @@ BUGS
 
 - Saw this: Uploading segment 37/36
 
-- bash-completion:
-    - Become aware of -e <ENDPOINT> argument
-
 - Rework urlencoding of container and object names
 
 
