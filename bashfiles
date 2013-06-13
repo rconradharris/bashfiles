@@ -778,12 +778,7 @@ function cf_get() {
     shift
     local obj_names=$@
 
-    if [[ $OPT_QUIET -eq 1 ]]; then
-        local opt_silent=--silent
-    else
-        local opt_silent=
-    fi
-
+    local obj_name=
     for obj_name in $obj_names; do
         if [[ -n $OPT_OUTPUT ]]; then
             local filename=$OPT_OUTPUT
@@ -803,8 +798,10 @@ function cf_get() {
         local output=.$filename.download
         local tmp_headers=`bf_mktemp`
 
-        cf_request_check_ok $container/$obj_name $opt_silent \
-                            --dump-header $tmp_headers --output $output
+        cf_request_smart_silent $container/$obj_name \
+                                --dump-header $tmp_headers \
+                                --output $output
+
 
         local etag=$(cat $tmp_headers | grep --ignore-case ^Etag \
                                       | sed 's/.*: //' \
@@ -865,14 +862,12 @@ function cf_put_small_object() {
     local obj_name=$3
     local content_type=$4
     local size=$5
-    local opt_silent=$6
-    local segment_size=$7
+    local segment_size=$6
 
     local etag=`bf_md5 $filename`
 
     cf_request_put_object $container $obj_name "$content_type" \
                           --header "ETag: $etag" --upload-file $filename
-
 }
 
 
@@ -882,8 +877,7 @@ function cf_put_large_object() {
     local obj_name=$3
     local content_type=$4
     local size=$5
-    local opt_silent=$6
-    local segment_size=$7
+    local segment_size=$6
 
     local left=$size
     local segment_num=1
@@ -933,7 +927,6 @@ function cf_put_large_object() {
 function cf_put_stream() {
     local container=$1
     local obj_name=$2
-    local opt_silent=$3
 
     local content_type=
 
@@ -950,7 +943,6 @@ function cf_put_stream() {
 function cf_put_file() {
     local container=$1
     local obj_name=$2
-    local opt_silent=$3
 
     local filename=$obj_name
     local segment_size=
@@ -975,12 +967,10 @@ function cf_put_file() {
 
     if [[ $size -gt $segment_size ]]; then
         cf_put_large_object $container $filename $obj_name \
-                            "$content_type" $size "$opt_silent" \
-                            $segment_size
+                            "$content_type" $size $segment_size
     else
         cf_put_small_object $container $filename $obj_name \
-                            "$content_type" $size "$opt_silent" \
-                            $segment_size
+                            "$content_type" $size $segment_size
     fi
 }
 
@@ -990,17 +980,12 @@ function cf_put() {
     shift
     local obj_names=$@
 
-    if [[ $OPT_QUIET -eq 1 ]]; then
-        local opt_silent=--silent
-    else
-        local opt_silent=
-    fi
-
+    local obj_name=
     for obj_name in $obj_names; do
         if [[ $OPT_INPUT == - ]]; then
-            cf_put_stream $container $obj_name "$opt_silent"
+            cf_put_stream $container $obj_name
         else
-            cf_put_file $container $obj_name "$opt_silent"
+            cf_put_file $container $obj_name
         fi
     done
 }
@@ -1011,6 +996,7 @@ function cf_rm() {
     shift
     local obj_names=$@
 
+    local obj_name=
     for obj_name in $obj_names; do
         cf_request_check_ok $container/$obj_name --silent --request DELETE
     done
@@ -1030,6 +1016,7 @@ function cf_clear_container() {
     local total_objects=`echo $obj_names | wc -w | tr -d ' '`
     local idx=1
 
+    local obj_name=
     for obj_name in $obj_names; do
         bf_log "Deleting $idx/$total_objects: $obj_name"
         cf_rm $container $obj_name
@@ -1043,6 +1030,7 @@ function cf_clear_container() {
 function cf_rmdir() {
     local containers=$@
 
+    local container=
     for container in $containers; do
         if [[ $OPT_FORCE -eq 1 ]]; then
             cf_clear_container $container
@@ -1079,6 +1067,7 @@ function cf_stat() {
         cf_stat_thing "$container"
     else
         # Objects
+        local obj_name=
         for obj_name in $obj_names; do
             cf_stat_thing $container/$obj_name
         done
@@ -1112,6 +1101,7 @@ function cf_assert_objects_missing() {
     shift
     local obj_names=$@
 
+    local obj_name=
     for obj_name in $obj_names; do
         local code=$(cf_request_return_code $container/$obj_name --silent \
                                             --output /dev/null --head)
