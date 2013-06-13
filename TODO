@@ -1,10 +1,9 @@
 BUGS
 ====
 
-- Saw this: Uploading segment 37/36
-
 - Rework urlencoding of container and object names
 
+- Fix Ctrl-C on large-file upload
 
 FEATURES
 ========
@@ -40,6 +39,7 @@ FEATURES
 - Consider SQLite approach of building aggregate file
     - Use Makefile
 
+- Quick Delete by forking processes to background?
 
 TEST
 ====

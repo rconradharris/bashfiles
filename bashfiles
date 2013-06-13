@@ -98,6 +98,7 @@ SETTINGS
     CF_AUTH_URL     CloudFiles authentication URL
     CF_SERVICENET   Use Rackspace's ServiceNET network
     CF_INSECURE     Disable SSL certificate verification
+    CF_SEGMENT_SIZE Size in bytes of large-file segments (5GB default)
 
 FILES
 
@@ -325,10 +326,9 @@ function bf_compute_num_blocks() {
     local total_size=$1
     local block_size=$2
 
-    let nblocks=$total_size/$block_size
-    let reminader=$total_size%$block_size
+    local nblocks=$((total_size / $block_size))
 
-    if [[ $remainder -gt 0 ]]; then
+    if [[ $((total_size % $block_size)) -gt 0 ]]; then
         let nblocks++
     fi
 
@@ -911,26 +911,27 @@ function cf_put_large_object() {
     cf_mkdir ${seg_container}
 
     while [[ $left -gt 0 ]]; do
+        bf_log "Uploading segment $segment_num/$total_segments"
+
         if [[ $left -ge $segment_size ]]; then
             length=$segment_size
         else
             length=$left
         fi
 
-        bf_log "Uploading segment $segment_num/$total_segments"
-
         seg_name="$obj_prefix/`printf '%08d' $segment_num`"
         nblocks=`bf_compute_num_blocks $length $CF_DD_BLOCK_SIZE`
+
         dd if=$filename bs=$CF_DD_BLOCK_SIZE count=$nblocks skip=$skip \
                         2> /dev/null | \
             cf_request_put_object $seg_container $seg_name "$content_type" \
                                   --upload-file -
 
-        bf_log ""
-
         let left-=$length
         let skip+=$nblocks
         let segment_num++
+
+        bf_log ""
     done
 
     bf_log "Uploading manifest for ${filename}"
