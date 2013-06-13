@@ -5,6 +5,9 @@ BUGS
 
 - Fix Ctrl-C on large-file upload
 
+- Bash completion
+    - After -e <endpoint> container and object names should be different
+
 FEATURES
 ========
 

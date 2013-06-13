@@ -173,6 +173,9 @@ function _bf_completer() {
 
     if [[ $prev == '-e' ]]; then
         opts=`ls $BF_ENDPOINTS_DIR | tr '\n' ' '`
+    elif [[ $prev == '-i' ]]; then
+        COMPREPLY=($(compgen -f $cur))
+        return
     elif [[ $cmd_idx -eq -1 && ${cur:0:1} == '-' ]]; then
         # Option (no command yet, starts with -)
         opts="${OPTIONS[@]}"
@@ -874,7 +877,7 @@ function cf_mv() {
 }
 
 
-function cf_put_small_object() {
+function cf_put_file_small() {
     local container=$1
     local filename=$2
     local obj_name=$3
@@ -889,7 +892,7 @@ function cf_put_small_object() {
 }
 
 
-function cf_put_large_object() {
+function cf_put_file_large() {
     local container=$1
     local filename=$2
     local obj_name=$3
@@ -943,30 +946,20 @@ function cf_put_large_object() {
 }
 
 
-function cf_put_stream() {
-    local container=$1
-    local obj_name=$2
-
-    local content_type=
-
-    if [[ -n $OPT_CONTENT_TYPE ]]; then
-        content_type=$OPT_CONTENT_TYPE
-    else
-        content_type=$BF_DEFAULT_CONTENT_TYPE
-    fi
-
-    cf_request_put_object $container $obj_name "$content_type" --upload-file -
-}
-
-
 function cf_put_file() {
     local container=$1
     local obj_name=$2
 
-    local filename=$obj_name
+    local filename=
     local segment_size=
     local content_type=
     local size=
+
+    if [[ -n $OPT_INPUT ]]; then
+        filename=$OPT_INPUT
+    else
+        filename=$obj_name
+    fi
 
     bf_assert_file_exists $filename
 
@@ -985,12 +978,28 @@ function cf_put_file() {
     size=`bf_size $filename`
 
     if [[ $size -gt $segment_size ]]; then
-        cf_put_large_object $container $filename $obj_name \
-                            "$content_type" $size $segment_size
+        cf_put_file_large $container $filename $obj_name \
+                          "$content_type" $size $segment_size
     else
-        cf_put_small_object $container $filename $obj_name \
-                            "$content_type" $size $segment_size
+        cf_put_file_small $container $filename $obj_name \
+                          "$content_type" $size $segment_size
     fi
+}
+
+
+function cf_put_stream() {
+    local container=$1
+    local obj_name=$2
+
+    local content_type=
+
+    if [[ -n $OPT_CONTENT_TYPE ]]; then
+        content_type=$OPT_CONTENT_TYPE
+    else
+        content_type=$BF_DEFAULT_CONTENT_TYPE
+    fi
+
+    cf_request_put_object $container $obj_name "$content_type" --upload-file -
 }
 
 
