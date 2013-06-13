@@ -746,7 +746,6 @@ function cf_request_put_object() {
     shift
     shift
 
-    # TODO: content-type default
     container_name=`bf_urlencode $container_name`
     obj_name=`bf_urlencode $obj_name`
 
@@ -894,11 +893,10 @@ function cf_put_large_object() {
     local nblocks=
 
     local seg_container=${obj_name}_segments
-    local seg_prefix="$seg_container/$obj_name/`date +%s`/$size/"
+    local obj_prefix="$obj_name/`date +%s`/$size"
+    local total_segments=`bf_compute_num_blocks $size $segment_size`
 
     cf_mkdir ${seg_container}
-
-    local total_segments=`bf_compute_num_blocks $size $segment_size`
 
     while [[ $left -gt 0 ]]; do
         if [[ $left -ge $segment_size ]]; then
@@ -907,18 +905,14 @@ function cf_put_large_object() {
             length=$left
         fi
 
-        nblocks=`bf_compute_num_blocks $length $CF_DD_BLOCK_SIZE`
-
         bf_log "Uploading segment $segment_num/$total_segments"
 
-        seg_name="$seg_prefix$(printf '%08d' $segment_num)"
-        seg_name=`bf_urlencode $seg_name`
-
+        seg_name="$obj_prefix/`printf '%08d' $segment_num`"
+        nblocks=`bf_compute_num_blocks $length $CF_DD_BLOCK_SIZE`
         dd if=$filename bs=$CF_DD_BLOCK_SIZE count=$nblocks skip=$skip \
                         2> /dev/null | \
-            cf_request_check_ok $seg_name $opt_silent --upload-file - \
-                                --request PUT \
-                                --header "Content-Type: $content_type"
+            cf_request_put_object $seg_container $seg_name "$content_type" \
+                                  --upload-file -
 
         bf_log ""
 
@@ -928,10 +922,11 @@ function cf_put_large_object() {
     done
 
     bf_log "Uploading manifest for ${filename}"
-    cf_request_check_ok ${container}/${obj_name} --data-binary '' \
-                        --output /dev/null --request PUT $opt_silent \
-                        --header "Content-Type: ${content_type}" \
-                        --header "X-Object-Manifest: ${seg_prefix}"
+
+    local manifest="$seg_container/$obj_prefix/"
+    cf_request_put_object $container $obj_name "$content_type" \
+                          --data-binary '' --output /dev/null \
+                          --header "X-Object-Manifest: $manifest"
 }
 
 
@@ -948,7 +943,7 @@ function cf_put_stream() {
         content_type=$BF_DEFAULT_CONTENT_TYPE
     fi
 
-    cf_request_put_object $container $obj_name $content_type --upload-file -
+    cf_request_put_object $container $obj_name "$content_type" --upload-file -
 }
 
 
