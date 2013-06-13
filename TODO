@@ -5,7 +5,6 @@ BUGS
 
 - bash-completion:
     - Become aware of -e <ENDPOINT> argument
-    - Add endpoint sub-commands
 
 - Rework urlencoding of container and object names
 

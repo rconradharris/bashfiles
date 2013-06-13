@@ -145,6 +145,7 @@ function _bf_completer() {
 
     local OPTIONS=(-b -e -f -h -i -o -q -t -v)
     local COMMANDS=(cp endpoint get ls mkdir mv put rm rmdir stat)
+    local ENDPOINT_COMMANDS=(add ls rm show)
 
     local cmd=
     local container_idx=
@@ -153,18 +154,21 @@ function _bf_completer() {
     local opts=
 
     local cur="${COMP_WORDS[COMP_CWORD]}"
+    local prev="${COMP_WORDS[COMP_CWORD-1]}"
 
     local endpoint=default
-    local COMPLETION_DIR=~/.bashfiles/completion/$endpoint
+
+    local BF_CONFIG_DIR=~/.bashfiles
+    local BF_ENDPOINTS_DIR=$BF_CONFIG_DIR/endpoints
+    local BF_COMPLETION_DIR=$BF_CONFIG_DIR/completion/$endpoint
 
     local cmd_idx=`_bf_match COMP_WORDS[@] COMMANDS[@]`
     if [[ $cmd_idx -ne -1 ]]; then
         cmd=${COMP_WORDS[cmd_idx]}
         container_idx=`expr $cmd_idx + 1`
-        container_fname=$COMPLETION_DIR/container-names
-        object_fname=$COMPLETION_DIR/${COMP_WORDS[container_idx]}-object-names
+        container_fname=$BF_COMPLETION_DIR/container-names
+        object_fname=$BF_COMPLETION_DIR/${COMP_WORDS[container_idx]}-object-names
     fi
-
 
     if [[ $cmd_idx -eq -1 && ${cur:0:1} == '-' ]]; then
         # Option (no command yet, starts with -)
@@ -172,6 +176,12 @@ function _bf_completer() {
     elif [[ $cmd_idx -eq -1 ]]; then
         # Command (no command yet, anything else)
         opts="${COMMANDS[@]}"
+    elif [[ $cmd == 'endpoint' ]]; then
+        if [[ $prev == 'rm' || $prev == 'show' ]]; then
+            opts=`ls $BF_ENDPOINTS_DIR | tr '\n' ' '`
+        else
+            opts="${ENDPOINT_COMMANDS[@]}"
+        fi
     elif [[ $COMP_CWORD -eq $container_idx && -r $container_fname ]]; then
         # Containers (after command)
         opts=`cat $container_fname | tr '\n' ' '`
