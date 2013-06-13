@@ -13,12 +13,6 @@ BUGS
 FEATURES
 ========
 
-- Add insecure mode
-    - Unify curl calls first
-    - Add base_curl_opts
-    - CF_INSECURE setting
-    - Add to interactive config
-
 - Add context-help:
     - bashfiles help (general help)
     - bashfiles help get (get specific help)
@@ -39,6 +33,7 @@ FEATURES
     - Switch to SLO large-files?
     - Add Cloudfiles v2 Auth
     - rmdir: Handle pagination for clear_container
+    - Pagination to ls as well
 
 - Other backends:
     - S3

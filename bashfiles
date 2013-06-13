@@ -97,6 +97,7 @@ SETTINGS
     CF_API_KEY      CloudFiles API Key
     CF_AUTH_URL     CloudFiles authentication URL
     CF_SERVICENET   Use Rackspace's ServiceNET network
+    CF_INSECURE     Disable SSL certificate verification
 
 FILES
 
@@ -396,23 +397,6 @@ function bf_init() {
 }
 
 
-function bf_check_ok() {
-    local code=$1
-
-    if [[ $code -lt 200 || $code -gt 299 ]]; then
-        bf_die "Invalid response code: $code"
-    fi
-}
-
-
-function bf_curl() {
-    local url=$1
-    shift
-
-    curl --fail "$@" "$url"
-}
-
-
 #############################################################################
 #                                                                           #
 #                               Commands                                    #
@@ -661,6 +645,29 @@ CF_DEFAULT_SEGMENT_SIZE=5368709120
 CF_DD_BLOCK_SIZE=1024
 
 
+function cf_check_ok() {
+    local code=$1
+
+    if [[ $code -lt 200 || $code -gt 299 ]]; then
+        bf_die "Invalid response code: $code"
+    fi
+}
+
+
+function cf_curl() {
+    local url=$1
+    shift
+
+    if [[ $CF_INSECURE -eq 1 ]]; then
+        local curl_opts=--insecure
+    else
+        local curl_opts=
+    fi
+
+    curl $curl_opts --fail "$@" "$url"
+}
+
+
 function cf_handle_snet() {
     if [[ $CF_SERVICENET -eq 1 ]]; then
         CF_STORAGE_URL=${CF_STORAGE_URL/https:\/\//https://snet-}
@@ -681,12 +688,12 @@ function cf_auth() {
     fi
 
     local code=$(
-        bf_curl ${CF_AUTH_URL} --silent --write-out '%{http_code}' \
+        cf_curl ${CF_AUTH_URL} --silent --write-out '%{http_code}' \
                                --dump-header $tmp_headers \
                                --header "X-Auth-Key: $CF_API_KEY" \
                                --header "X-Auth-User: $CF_USER")
 
-    bf_check_ok $code
+    cf_check_ok $code
 
     CF_AUTH_TOKEN=$(cat $tmp_headers | grep ^X-Auth-Token \
                                      | sed 's/.*: //' \
@@ -710,7 +717,7 @@ function cf_request() {
     shift
 
     cf_auth
-    bf_curl "$CF_STORAGE_URL/$url" --header "X-Auth-Token: $CF_AUTH_TOKEN" \
+    cf_curl "$CF_STORAGE_URL/$url" --header "X-Auth-Token: $CF_AUTH_TOKEN" \
             "$@"
 }
 
@@ -723,7 +730,7 @@ function cf_request_return_code() {
 
 function cf_request_check_ok() {
     local code=`cf_request_return_code "$@"`
-    bf_check_ok $code
+    cf_check_ok $code
 }
 
 
@@ -1126,6 +1133,7 @@ CF_USER=$CF_USER
 CF_API_KEY=$CF_API_KEY
 CF_AUTH_URL=$CF_AUTH_URL
 CF_SERVICENET=$CF_SERVICENET
+CF_INSECURE=$CF_INSECURE
 EOF
 }
 
@@ -1171,6 +1179,17 @@ function cf_load_endpoint_config_interactive() {
             CF_SERVICENET=1
         else
             CF_SERVICENET=0
+        fi
+    fi
+
+    if [[ -z $CF_INSECURE ]]; then
+        ret=0
+        local insecure=`bf_ask_with_default n 'Allow Insecure SSL [y/N]? '`
+
+        if [[ $insecure = 'y' || $insecure = 'Y' ]]; then
+            CF_INSECURE=1
+        else
+            CF_INSECURE=0
         fi
     fi
 
