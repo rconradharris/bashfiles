@@ -727,6 +727,34 @@ function cf_request_check_ok() {
 }
 
 
+function cf_request_smart_silent() {
+    if [[ $OPT_QUIET -eq 1 ]]; then
+        local opt_silent=--silent
+    else
+        local opt_silent=
+    fi
+
+    cf_request_check_ok "$@" $opt_silent
+}
+
+
+function cf_request_put_object() {
+    local container=$1
+    local obj_name=$2
+    local content_type=$3
+    shift
+    shift
+    shift
+
+    # TODO: content-type default
+    container_name=`bf_urlencode $container_name`
+    obj_name=`bf_urlencode $obj_name`
+
+    cf_request_smart_silent $container/$obj_name --request PUT \
+                            --header "Content-Type: $content_type" "$@" 
+}
+
+
 function cf_cp() {
     local src_container=$1
     local src_obj_name=$2
@@ -843,9 +871,9 @@ function cf_put_small_object() {
 
     local etag=`bf_md5 $filename`
 
-    cf_request_check_ok $container/$obj_name $opt_silent --request PUT \
-                        --header "Content-Type: $content_type" \
-                        --header "ETag: $etag" --upload-file $filename
+    cf_request_put_object $container $obj_name "$content_type" \
+                          --header "ETag: $etag" --upload-file $filename
+
 }
 
 
@@ -912,15 +940,15 @@ function cf_put_stream() {
     local obj_name=$2
     local opt_silent=$3
 
+    local content_type=
+
     if [[ -n $OPT_CONTENT_TYPE ]]; then
-        local content_type=$OPT_CONTENT_TYPE
+        content_type=$OPT_CONTENT_TYPE
     else
-        local content_type=$BF_DEFAULT_CONTENT_TYPE
+        content_type=$BF_DEFAULT_CONTENT_TYPE
     fi
 
-    cf_request_check_ok $container/$obj_name --request PUT \
-                        --header "Content-Type: $content_type" \
-                        --upload-file - $opt_silent
+    cf_request_put_object $container $obj_name $content_type --upload-file -
 }
 
 
@@ -930,22 +958,25 @@ function cf_put_file() {
     local opt_silent=$3
 
     local filename=$obj_name
+    local segment_size=
+    local content_type=
+    local size=
 
     bf_assert_file_exists $filename
 
     if [[ -n $CF_SEGMENT_SIZE ]];  then
-        local segment_size=$CF_SEGMENT_SIZE
+        segment_size=$CF_SEGMENT_SIZE
     else
-        local segment_size=$CF_DEFAULT_SEGMENT_SIZE
+        segment_size=$CF_DEFAULT_SEGMENT_SIZE
     fi
 
     if [[ -n $OPT_CONTENT_TYPE ]]; then
-        local content_type=$OPT_CONTENT_TYPE
+        content_type=$OPT_CONTENT_TYPE
     else
-        local content_type=`bf_autodetect_filetype $filename`
+        content_type=`bf_autodetect_filetype $filename`
     fi
 
-    local size=`bf_size $filename`
+    size=`bf_size $filename`
 
     if [[ $size -gt $segment_size ]]; then
         cf_put_large_object $container $filename $obj_name \
