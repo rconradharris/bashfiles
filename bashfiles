@@ -159,6 +159,12 @@ function _bf_completer() {
 
     local endpoint=default
 
+    local ENDPOINT_OPTIONS=(-e)
+    local endpoint_idx=`_bf_match COMP_WORDS[@] ENDPOINT_OPTIONS[@]`
+    if [[ $endpoint_idx -ne -1 ]]; then
+        endpoint=${COMP_WORDS[endpoint_idx+1]}
+    fi
+
     local BF_CONFIG_DIR=~/.bashfiles
     local BF_ENDPOINTS_DIR=$BF_CONFIG_DIR/endpoints
     local BF_COMPLETION_DIR=$BF_CONFIG_DIR/completion/$endpoint
@@ -171,7 +177,7 @@ function _bf_completer() {
         object_fname=$BF_COMPLETION_DIR/${COMP_WORDS[container_idx]}-object-names
     fi
 
-    if [[ $prev == '-e' ]]; then
+    if [[ $prev == '-e' && -d $BF_ENDPOINTS_DIR ]]; then
         opts=`ls $BF_ENDPOINTS_DIR | tr '\n' ' '`
     elif [[ $prev == '-i' ]]; then
         COMPREPLY=($(compgen -f $cur))
@@ -184,7 +190,9 @@ function _bf_completer() {
         opts="${COMMANDS[@]}"
     elif [[ $cmd == 'endpoint' ]]; then
         if [[ $prev == 'rm' || $prev == 'show' ]]; then
-            opts=`ls $BF_ENDPOINTS_DIR | tr '\n' ' '`
+            if [[ -d $BF_ENDPOINTS_DIR ]]; then
+                opts=`ls $BF_ENDPOINTS_DIR | tr '\n' ' '`
+            fi
         else
             opts="${ENDPOINT_COMMANDS[@]}"
         fi

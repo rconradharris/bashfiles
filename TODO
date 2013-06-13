@@ -5,8 +5,6 @@ BUGS
 
 - Fix Ctrl-C on large-file upload
 
-- Bash completion
-    - After -e <endpoint> container and object names should be different
 
 FEATURES
 ========
@@ -32,6 +30,10 @@ FEATURES
     - Add Cloudfiles v2 Auth
     - rmdir: Handle pagination for clear_container
     - Pagination to ls as well
+        - limit, marker params
+
+      Emit warning if num_objects returned equal CF_LISTING_LIMIT,
+      CF_DEFAULT_LISTING_LIMIT
 
 - Other backends:
     - S3
