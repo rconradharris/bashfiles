@@ -5,6 +5,8 @@ BUGS
 
 - Fix Ctrl-C on large-file upload
 
+- Ensure endpoint doesn't already exist before add
+
 
 FEATURES
 ========
@@ -46,9 +48,23 @@ FEATURES
 
 - Quick Delete by forking processes to background?
 
+- Even more portability: Switch to sh instead of bash. Is there a system that
+  will have curl but not bash?!
+
+- Revised directory structure
+/
+    MakeFile
+    src/
+        bashfiles.sh
+        lib/
+            utils.sh : General purpose utilities
+            platform.sh Cross-platform wrappers
+        backends/
+            cloudfiles.sh
+    tests/
+
+
 TEST
 ====
 
 - Test against Linux
-
-- Test large-file upload

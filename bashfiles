@@ -260,12 +260,15 @@ function bf_general_usage() {
 function bf_ask() {
     local question=$1
 
-    read -p "$question"
+    read -p "$question "
     echo $REPLY
 }
 
 
 function bf_ask_required() {
+    # NOTE: this function should not be spawned in a subshell b/c it has the
+    # side-effect of exiting on an empty reply. This is why we have to return
+    # the result by `eval` instead of `echo`ing from a subshell
     local var=$1
     local question=$2
     local reply=`bf_ask "$question"`
@@ -288,6 +291,29 @@ function bf_ask_with_default() {
     fi
 
     echo "$reply"
+}
+
+
+function bf_ask_yes_no() {
+    local default=$1
+    local question=$2
+    local ret=
+    local hint=
+
+    if [[ $default == 'Y' || $default == 'y' ]]; then
+        hint="[Y/n]"
+    else
+        hint="[y/N]"
+    fi
+
+    local reply=`bf_ask_with_default "$default" "$question $hint?"`
+    if [[ $reply == 'Y' || $reply == 'y' ]]; then
+        ret=1
+    else
+        ret=0
+    fi
+
+    echo $ret
 }
 
 
@@ -398,9 +424,7 @@ function bf_load_endpoint_config_interactive() {
         return
     fi
 
-    local save=`bf_ask_with_default N 'Save settings [y/N]? '`
-
-    if [[ $save = 'y' || $save = 'Y' ]]; then
+    if [[ `bf_ask_yes_no n 'Save settings'` -eq 1 ]]; then
         bf_save_endpoint_config
     fi
 }
@@ -1178,18 +1202,18 @@ function cf_load_endpoint_config_interactive() {
 
     if [[ -z $CF_USER ]]; then
         ret=0
-        bf_ask_required 'CF_USER' 'CloudFiles Username: '
+        bf_ask_required 'CF_USER' 'CloudFiles Username:'
     fi
 
     if [[ -z $CF_API_KEY ]]; then
         ret=0
-        bf_ask_required 'CF_API_KEY' 'CloudFiles API Key: '
+        bf_ask_required 'CF_API_KEY' 'CloudFiles API Key:'
     fi
 
     if [[ -z $CF_AUTH_URL ]]; then
         ret=0
         local auth_url=$(bf_ask_with_default us \
-                         'Location or Auth URL: [<url>/uk/US]: ')
+                         'Location or Auth URL [<url>/uk/US]:')
 
         if [[ $auth_url == 'uk' || $auth_url == 'UK' ]]; then
             CF_AUTH_URL=$CF_DEFAULT_AUTH_URL_UK
@@ -1202,24 +1226,12 @@ function cf_load_endpoint_config_interactive() {
 
     if [[ -z $CF_SERVICENET ]]; then
         ret=0
-        local snet=`bf_ask_with_default n 'Use ServiceNET [y/N]? '`
-
-        if [[ $snet = 'y' || $snet = 'Y' ]]; then
-            CF_SERVICENET=1
-        else
-            CF_SERVICENET=0
-        fi
+        CF_SERVICENET=`bf_ask_yes_no n 'Use ServiceNET'`
     fi
 
     if [[ -z $CF_INSECURE ]]; then
         ret=0
-        local insecure=`bf_ask_with_default n 'Allow Insecure SSL [y/N]? '`
-
-        if [[ $insecure = 'y' || $insecure = 'Y' ]]; then
-            CF_INSECURE=1
-        else
-            CF_INSECURE=0
-        fi
+        CF_INSECURE=`bf_ask_yes_no n 'Allow Insecure SSL'`
     fi
 
     return $ret
