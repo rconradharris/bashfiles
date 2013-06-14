@@ -379,22 +379,6 @@ function bf_autodetect_filetype() {
 }
 
 
-function bf_assert_file_missing() {
-    local filename=$1
-    if [[ -e $filename ]]; then
-        bf_die "File '$filename' already exists, use -f to overwrite"
-    fi
-}
-
-
-function bf_assert_file_exists() {
-    local filename=$1
-    if [[ ! -e $filename ]]; then
-        bf_die "File '$filename' not found"
-    fi
-}
-
-
 function bf_save_endpoint_config() {
     mkdir -p `dirname $BF_ENDPOINT_CONFIG`
 
@@ -479,6 +463,10 @@ function cmd_endpoint_add() {
 
     if [[ -z $endpoint ]]; then
         bf_usage 'endpoint add <endpoint>'
+    fi
+
+    if [[ -e $BF_ENDPOINTS_DIR/$endpoint ]]; then
+        bf_die "Endpoint '$endpoint' already exists"
     fi
 
     OPT_ENDPOINT=$endpoint
@@ -845,7 +833,9 @@ function cf_get() {
             cf_request $container/$obj_name --silent
             continue
         elif [[ $OPT_FORCE -ne 1 ]]; then
-            bf_assert_file_missing $filename
+            if [[ -e $filename ]]; then
+                bf_die "File '$filename' already exists, use -f to overwrite"
+            fi
         fi
 
         local output=.$filename.download
@@ -993,7 +983,9 @@ function cf_put_file() {
         filename=$obj_name
     fi
 
-    bf_assert_file_exists $filename
+    if [[ ! -e $filename ]]; then
+        bf_die "File '$filename' not found"
+    fi
 
     if [[ -n $CF_SEGMENT_SIZE ]];  then
         segment_size=$CF_SEGMENT_SIZE

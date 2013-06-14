@@ -5,9 +5,6 @@ BUGS
 
 - Fix Ctrl-C on large-file upload
 
-- Ensure endpoint doesn't already exist before add
-
-
 FEATURES
 ========
 
