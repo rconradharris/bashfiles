@@ -1,3 +1,11 @@
+INI file parsing:
+
+- Reading an INI file
+    - List sections
+    - Read data from section
+
+- Writing an INI file
+
 BUGS
 ====
 
