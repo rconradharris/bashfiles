@@ -318,12 +318,10 @@ function bf_ask_yes_no() {
 
 
 function bf_md5() {
-    if [[ -e /sbin/md5 ]]; then
-        # OSX
+    if [[ `uname` == "Darwin" ]]; then
         echo `md5 -q $1`
     else
-        # Linux
-        echo `md5sum -q $1`
+        echo `md5sum $1 | cut -d' ' -f1`
     fi
 }
 
