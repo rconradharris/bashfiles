@@ -342,7 +342,11 @@ function bf_urlencode() {
 
 
 function bf_mktemp() {
-    echo `mktemp -t $BF_PROG`
+    if [[ `uname` == "Darwin" ]]; then
+        echo `mktemp -t $BF_PROG`
+    else
+        echo `mktemp -t $BF_PROG.XXXXXXXXX`
+    fi
 }
 
 
