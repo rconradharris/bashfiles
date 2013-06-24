@@ -6,6 +6,7 @@ BF_PROG=`basename $0`
 BF_DEFAULT_CONTENT_TYPE=application/octet-stream
 BF_CONFIG_DIR=~/.$BF_PROG
 BF_ENDPOINTS_DIR=$BF_CONFIG_DIR/endpoints
+BF_CHECKSUM_PROGRESS_MIN_SIZE=10485760 # 10 MB
 
 OPT_CONTENT_TYPE=
 OPT_ENDPOINT=default
@@ -318,11 +319,26 @@ function bf_ask_yes_no() {
 
 
 function bf_md5() {
-    if [[ `uname` == "Darwin" ]]; then
-        echo `md5 -q $1`
+    local filename=$1
+
+    local size=`bf_size $filename`
+    local cmd=
+
+    # Provide checksum progress using `pv` if `pv` is present and we're above
+    # the minimum size cut-off
+    if [[ -n `which pv` && $size -ge BF_CHECKSUM_PROGRESS_MIN_SIZE ]]; then
+        cmd="pv $filename | "
     else
-        echo `md5sum $1 | cut -d' ' -f1`
+        cmd="cat $filename | "
     fi
+
+    if [[ `uname` == "Darwin" ]]; then
+        cmd="${cmd}md5 -q"
+    else
+        cmd="${cmd}md5sum | cut -d' ' -f1"
+    fi
+
+    echo $(eval $cmd)
 }
 
 
@@ -909,8 +925,10 @@ function cf_put_file_small() {
     local size=$5
     local segment_size=$6
 
+    bf_log "Computing MD5 checksum for '$filename'..."
     local etag=`bf_md5 $filename`
 
+    bf_log "Uploading '$obj_name' to '$container'..."
     cf_request_put_object $container $obj_name "$content_type" \
                           --header "ETag: $etag" --upload-file $filename
 }
