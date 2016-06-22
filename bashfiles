@@ -70,7 +70,13 @@ COMMANDS
             -f Overwrite local file if exists
             -o Output to different filename, - for stdout
 
-    ls      List all containers or contents of a specific container
+    ls      <container> [path]
+
+            List all containers or contents of a specific container
+
+            For CloudFiles, you can list the contents of pseudo-hierarchical
+            folders by supplying `path` prefix, e.g.
+            `ls mycontainer folder1/folder2`
 
     mkdir   Create a container
 
@@ -562,18 +568,24 @@ function cmd_get() {
 
 function cmd_ls() {
     local container=$1
+    local path=$2
     local tmp_file=`bf_mktemp`
 
     bf_init
 
-    cf_ls "$container" $tmp_file
+    cf_ls "$container" "$path" "$tmp_file"
 
     cat $tmp_file
 
     # Refresh bash-completion cache
     mkdir -p $BF_COMPLETION_DIR
-    if [[ -z $container ]]; then
+    if [[ -z "$container" ]]; then
         mv $tmp_file $BF_COMPLETION_DIR/container-names
+    elif [[ -n "$path" ]]; then
+        # Since folder contents is a subset of total container contents, we
+        # need to append not replace the listed objects
+        cat $tmp_file >> $BF_COMPLETION_DIR/$container-object-names
+        rm $tmp_file
     else
         mv $tmp_file $BF_COMPLETION_DIR/$container-object-names
     fi
@@ -826,9 +838,22 @@ function cf_cp() {
 
 function cf_ls() {
     local container=$1
-    local tmp_file=$2
+    local path=$2
+    local tmp_file=$3
+    local url=
 
-    cf_request_check_ok "$container" --silent --output $tmp_file
+    if [ -z "$path" ]; then
+        url=$container
+    else
+        url=$container?delimiter=/\&prefix=${path}
+        # Add a slash to end of prefix if it's not present because otherwise
+        # CF won't return the contents of that folder
+        if [ "${path: -1}" != "/" ]; then
+            url=$url/
+        fi
+    fi
+
+    cf_request_check_ok "${url}" --silent --output $tmp_file
 }
 
 
@@ -1080,7 +1105,7 @@ function cf_clear_container() {
     local tmp_file=`bf_mktemp`
 
     # TODO: handle pagination
-    cf_ls $container $tmp_file
+    cf_ls "$container" $tmp_file
     obj_names=`cat $tmp_file`
 
     # NOTE: tr -d is needed for Mac OS X, since wc -w has leading spaces

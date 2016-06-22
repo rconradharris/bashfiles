@@ -1,0 +1,4 @@
+0.2
+    - FEATURE: `ls` now handles pseudo-hierarchical folders (CloudFiles)
+0.1
+    - Initial release

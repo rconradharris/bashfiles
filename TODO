@@ -1,3 +1,6 @@
+- Handle bash-completion for pseudo-hierarchical folders
+    - currently we only bash complete against containers and objects
+
 INI file parsing:
 
 - Reading an INI file
