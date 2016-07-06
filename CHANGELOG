@@ -1,4 +1,6 @@
 0.2
+    - FEATURE: `get` now takes a `-d` option to download files into a
+          particular directory
     - FEATURE: `get` now takes a `-a` option to download all files in
           container
     - FEATURE: `ls` now handles pseudo-hierarchical folders (CloudFiles)

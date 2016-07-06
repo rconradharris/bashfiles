@@ -1,17 +1,14 @@
-- Add a getall command that downloads contents of container or path
-    - Container
-    - Path
-
 - Add ability to set default endpoint
     - Do not allow an endpoint to be named 'default'
     - Creates a symlink 'default' to a particular endpoint
     - When removing an endpoint; remove default as well if it is pointed to by
       it
 
-
 - Make rmdir handle paths in addition to containers
 
 - Add colorization to output
+    - error should be red
+    - warning should be yellow
 
 - Add sync command that syncs directory into cloudfiles under a container or a
   path
