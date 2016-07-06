@@ -547,8 +547,6 @@ function cmd_endpoint_default() {
 
 
 function cmd_endpoint_ls() {
-    # NOTE: cat is needed here so that we get one entry per line. This works
-    # by diguising from `ls` the fact that we're actually a tty
     local default=$(basename `readlink $BF_ENDPOINTS_DIR/default`)
     for endpoint in `ls $BF_ENDPOINTS_DIR`; do
         if [[ $endpoint == $default ]]; then
@@ -565,10 +563,18 @@ function cmd_endpoint_rm() {
     if [[ -z $endpoint ]]; then
         bf_usage 'endpoint rm <endpoint>'
     fi
+    if [[ $endpoint == default ]]; then
+        bf_die "cannot remove 'default' endpoint directly, instead remove what default points to"
+    fi
     if [[ ! -e $BF_ENDPOINTS_DIR/$endpoint ]]; then
         bf_die "endpoint '$endpoint' doesn't exist"
     fi
 
+    local default=$(basename `readlink $BF_ENDPOINTS_DIR/default`)
+    if [[ $endpoint == $default ]]; then
+        rm $BF_ENDPOINTS_DIR/default
+
+    fi
     rm $BF_ENDPOINTS_DIR/$endpoint
 
     local completion_dir=$BF_CONFIG_DIR/completion/$endpoint

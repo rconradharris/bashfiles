@@ -6,8 +6,10 @@
     - if there's only one endpoint, then make that endpoint the default
         - after add
         - after rm
+    - Do not allow removing of 'default' endpoint directly; they must remove
+      the named endpoint [DONE]
     - When removing an endpoint; remove default as well if it is pointed to by
-      it
+      it [DONE]
 
 - Make rmdir handle paths in addition to containers
 
