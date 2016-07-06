@@ -4,7 +4,7 @@
         - bashcompletion [DONE]
     - Add * to the default on `ls` (don't show default as separate file) [DONE]
     - if there's only one endpoint, then make that endpoint the default
-        - after add
+        - after add [DONE]
         - after rm
     - Do not allow removing of 'default' endpoint directly; they must remove
       the named endpoint [DONE]

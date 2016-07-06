@@ -504,6 +504,15 @@ function cmd_cp() {
 }
 
 
+function _default_endpoint() {
+    if [[ -e $BF_ENDPOINTS_DIR/default ]]; then
+        basename `readlink $BF_ENDPOINTS_DIR/default`
+    else
+        echo ""
+    fi
+}
+
+
 function cmd_endpoint_add() {
     local endpoint=$1
 
@@ -521,35 +530,39 @@ function cmd_endpoint_add() {
 
     OPT_ENDPOINT=$endpoint
     bf_load_endpoint_config
+
+    # If only one endpoint, make it the default
+    if [[ `cmd_endpoint_ls | wc -l` -eq 1 ]]; then
+        cmd_endpoint_default `cmd_endpoint_ls`
+    fi
 }
 
 
 function cmd_endpoint_default() {
     local endpoint=$1
-    local filename=$BF_ENDPOINTS_DIR/$endpoint
-    local symlink=$BF_ENDPOINTS_DIR/default
     if [[ -z $endpoint ]]; then
-        if [[ -e $symlink ]]; then
-            basename `readlink $symlink`
-            exit 0
+        local default=`_default_endpoint`
+        if [[ -n $default ]]; then
+            echo $default
         else
             bf_die 'no default endpoint set'
         fi
     fi
-    if [[ ! -e $filename ]]; then
+    if [[ ! -e $BF_ENDPOINTS_DIR/$endpoint ]]; then
         bf_die "endpoint '$endpoint' doesn't exist"
     fi
-    if [[ -e $symlink ]]; then
-        rm $symlink
+    if [[ -e $BF_ENDPOINTS_DIR/default ]]; then
+        rm $BF_ENDPOINTS_DIR/default
     fi
-    ln -s $filename $symlink
+    echo "Setting default endpoint to '$endpoint'"
+    ln -s $BF_ENDPOINTS_DIR/$endpoint $BF_ENDPOINTS_DIR/default
 }
 
 
 function cmd_endpoint_ls() {
-    local default=$(basename `readlink $BF_ENDPOINTS_DIR/default`)
+    local default=`_default_endpoint`
     for endpoint in `ls $BF_ENDPOINTS_DIR`; do
-        if [[ $endpoint == $default ]]; then
+        if [[ -n $endpoint && $endpoint == $default ]]; then
             echo $endpoint [default]
         elif [[ $endpoint != default ]]; then
             echo $endpoint
@@ -570,10 +583,9 @@ function cmd_endpoint_rm() {
         bf_die "endpoint '$endpoint' doesn't exist"
     fi
 
-    local default=$(basename `readlink $BF_ENDPOINTS_DIR/default`)
-    if [[ $endpoint == $default ]]; then
+    local default=`_default_endpoint`
+    if [[ -n $default && $endpoint == $default ]]; then
         rm $BF_ENDPOINTS_DIR/default
-
     fi
     rm $BF_ENDPOINTS_DIR/$endpoint
 
