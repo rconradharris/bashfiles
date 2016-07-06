@@ -1,7 +1,8 @@
 - Add ability to set default endpoint
     - Do not allow an endpoint to be named 'default' [DONE]
-    - Add * to the default on `ls`
     - bashfiles endpoint default foo creates a symlink 'default' to a particular endpoint
+        - bashcompletion [DONE]
+    - Add * to the default on `ls` (don't show default as separate file)
     - if there's only one endpoint, then make that endpoint the default
         - after add
         - after rm

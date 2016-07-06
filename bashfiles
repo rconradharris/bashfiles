@@ -64,10 +64,24 @@ COMMANDS
 
     endpoint Manage endpoints
 
-                add     Add endpoint
-                ls      List all endpoints
-                rm      Remove endpoint
-                show    Show endpoint settings
+                add     <endpoint>
+
+                        Add endpoint
+
+                default [endpoint]
+
+                        Show or set default endpoint
+
+                ls
+                        List all endpoints
+
+                rm      <endpoint>
+
+                        Remove endpoint
+
+                show    <endpoint>
+
+                        Show endpoint settings
 
     get     <container> [objects]
 
@@ -159,9 +173,9 @@ function _bf_match() {
 function _bf_completer() {
     COMPREPLY=()
 
-    local OPTIONS=(-b -e -f -h -i -o -q -t -v)
+    local OPTIONS=(-a -b -d -e -f -h -i -o -q -t -v)
     local COMMANDS=(cp endpoint get ls mkdir mv put rm rmdir stat)
-    local ENDPOINT_COMMANDS=(add ls rm show)
+    local ENDPOINT_COMMANDS=(add default ls rm show)
 
     local cmd=
     local container_idx=
@@ -204,9 +218,9 @@ function _bf_completer() {
         # Command (no command yet, anything else)
         opts="${COMMANDS[@]}"
     elif [[ $cmd == 'endpoint' ]]; then
-        if [[ $prev == 'rm' || $prev == 'show' ]]; then
+        if [[ $prev == 'default' || $prev == 'rm' || $prev == 'show' ]]; then
             if [[ -d $BF_ENDPOINTS_DIR ]]; then
-                opts=`ls $BF_ENDPOINTS_DIR | tr '\n' ' '`
+                opts=`ls $BF_ENDPOINTS_DIR | grep -v ^default$ | tr '\n' ' '`
             fi
         else
             opts="${ENDPOINT_COMMANDS[@]}"
@@ -498,15 +512,37 @@ function cmd_endpoint_add() {
     fi
 
     if [[ $endpoint == default ]]; then
-        bf_die "Endpoint cannot be named 'default'"
+        bf_die "endpoint cannot be named 'default'"
     fi
 
     if [[ -e $BF_ENDPOINTS_DIR/$endpoint ]]; then
-        bf_die "Endpoint '$endpoint' already exists"
+        bf_die "endpoint '$endpoint' already exists"
     fi
 
     OPT_ENDPOINT=$endpoint
     bf_load_endpoint_config
+}
+
+
+function cmd_endpoint_default() {
+    local endpoint=$1
+    local filename=$BF_ENDPOINTS_DIR/$endpoint
+    local symlink=$BF_ENDPOINTS_DIR/default
+    if [[ -z $endpoint ]]; then
+        if [[ -e $symlink ]]; then
+            basename `readlink $symlink`
+            exit 0
+        else
+            bf_die 'no default endpoint set'
+        fi
+    fi
+    if [[ ! -e $filename ]]; then
+        bf_die "endpoint '$endpoint' doesn't exist"
+    fi
+    if [[ -e $symlink ]]; then
+        rm $symlink
+    fi
+    ln -s $filename $symlink
 }
 
 
@@ -519,9 +555,11 @@ function cmd_endpoint_ls() {
 
 function cmd_endpoint_rm() {
     local endpoint=$1
-
     if [[ -z $endpoint ]]; then
         bf_usage 'endpoint rm <endpoint>'
+    fi
+    if [[ ! -e $BF_ENDPOINTS_DIR/$endpoint ]]; then
+        bf_die "endpoint '$endpoint' doesn't exist"
     fi
 
     rm $BF_ENDPOINTS_DIR/$endpoint
@@ -536,9 +574,11 @@ function cmd_endpoint_rm() {
 
 function cmd_endpoint_show() {
     local endpoint=$1
-
     if [[ -z $endpoint ]]; then
         bf_usage 'endpoint show <endpoint>'
+    fi
+    if [[ ! -e $BF_ENDPOINTS_DIR/$endpoint ]]; then
+        bf_die "endpoint '$endpoint' doesn't exist"
     fi
 
     cat $BF_ENDPOINTS_DIR/$endpoint
@@ -548,13 +588,13 @@ function cmd_endpoint_show() {
 function cmd_endpoint() {
     local subcommand=$1
     shift
-
     case $subcommand in
-        add)    cmd_endpoint_add    $@;;
-        ls)     cmd_endpoint_ls     $@;;
-        rm)     cmd_endpoint_rm     $@;;
-        show)   cmd_endpoint_show   $@;;
-        *)      bf_usage 'endpoint [add|ls|rm|show]';;
+        add)     cmd_endpoint_add       $@;;
+        default) cmd_endpoint_default   $@;;
+        ls)      cmd_endpoint_ls        $@;;
+        rm)      cmd_endpoint_rm        $@;;
+        show)    cmd_endpoint_show      $@;;
+        *)       bf_usage 'endpoint [add|default|ls|rm|show]';;
     esac
 }
 
