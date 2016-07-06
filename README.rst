@@ -67,6 +67,10 @@ Features
   bashfiles -e my-production-account get contatiner object
   bashfiles -e my-development-account get contatiner object
 
+* ... or set default endpoint::
+
+  bashfiles endpoint default my-development account
+
 
 CloudFiles Specific Features
 ============================
