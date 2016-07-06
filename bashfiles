@@ -893,7 +893,7 @@ function cf_get() {
     local idx=1
 
     if [[ -n $OPT_DIR ]]; then
-        pushd $OPT_DIR 2&>1 > /dev/null
+        pushd $OPT_DIR &> /dev/null
         if [[ $? -ne 0 ]]; then
             bf_die "could not change to directory '$OPT_DIR', did you create it yet?"
         fi
