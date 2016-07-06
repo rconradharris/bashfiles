@@ -497,6 +497,10 @@ function cmd_endpoint_add() {
         bf_usage 'endpoint add <endpoint>'
     fi
 
+    if [[ $endpoint == default ]]; then
+        bf_die "Endpoint cannot be named 'default'"
+    fi
+
     if [[ -e $BF_ENDPOINTS_DIR/$endpoint ]]; then
         bf_die "Endpoint '$endpoint' already exists"
     fi
