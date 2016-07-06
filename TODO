@@ -1,5 +1,33 @@
+- Add a getall command that downloads contents of container or path
+    - Container
+    - Path
+
+- Add ability to set default endpoint
+    - Do not allow an endpoint to be named 'default'
+    - Creates a symlink 'default' to a particular endpoint
+    - When removing an endpoint; remove default as well if it is pointed to by
+      it
+
+
+- Make rmdir handle paths in addition to containers
+
+- Add colorization to output
+
+- Add sync command that syncs directory into cloudfiles under a container or a
+  path
+
 - Handle bash-completion for pseudo-hierarchical folders
     - currently we only bash complete against containers and objects
+
+- Rework option parsing
+    - Options should be parsed as part of the subcommand
+
+- Add `ls -l` which will print size and creation date
+- Add `ls -h` which will print size in human-readable form 1KB etc
+- Add `ls -S` which will sort files by size
+- Add `ls -r` which will reverse sort order
+
+- Renew bashfiles.org/get (get latest)
 
 INI file parsing:
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 # bashfiles - Manage CloudFiles via the command-line
 
-BF_VERSION=0.1
+BF_VERSION=0.2
 BF_PROG=`basename $0`
 BF_DEFAULT_CONTENT_TYPE=application/octet-stream
 BF_CONFIG_DIR=~/.$BF_PROG
@@ -69,6 +69,13 @@ COMMANDS
 
             -f Overwrite local file if exists
             -o Output to different filename, - for stdout
+
+    getall <container> [path]
+
+            Download all files from a container or path
+
+            -f Overwrite local file if exists
+            -o <path> Output directory, default is current directory
 
     ls      <container> [path]
 
@@ -1105,8 +1112,10 @@ function cf_clear_container() {
     local tmp_file=`bf_mktemp`
 
     # TODO: handle pagination
-    cf_ls "$container" $tmp_file
-    obj_names=`cat $tmp_file`
+    # FIXME: clear container only clears containers right now, in the future
+    # it would be nice if it could clear pseudo-hierarchical folders as well
+    cf_ls "$container" "" $tmp_file
+    local obj_names=`cat $tmp_file`
 
     # NOTE: tr -d is needed for Mac OS X, since wc -w has leading spaces
     # in output
@@ -1115,7 +1124,7 @@ function cf_clear_container() {
 
     local obj_name=
     for obj_name in $obj_names; do
-        bf_log "Deleting $idx/$total_objects: $obj_name"
+        bf_log "Deleting $idx/$total_objects objects: $obj_name"
         cf_rm $container $obj_name
         let idx++
     done
@@ -1125,6 +1134,8 @@ function cf_clear_container() {
 
 
 function cf_rmdir() {
+    # FIXME: rmdir should only take one container, and second arg should be
+    # optional path
     local containers=$@
 
     local container=
@@ -1133,6 +1144,7 @@ function cf_rmdir() {
             cf_clear_container $container
         fi
 
+        bf_log "Deleting container: $container"
         cf_request_check_ok $container --silent --request DELETE
     done
 }
