@@ -594,6 +594,11 @@ function cmd_endpoint_rm() {
         rm $completion_dir/*
         rmdir $completion_dir
     fi
+
+    # If only one endpoint left, make it the default
+    if [[ `cmd_endpoint_ls | wc -l` -eq 1 ]]; then
+        cmd_endpoint_default `cmd_endpoint_ls`
+    fi
 }
 
 
