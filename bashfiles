@@ -8,6 +8,7 @@ BF_CONFIG_DIR=~/.$BF_PROG
 BF_ENDPOINTS_DIR=$BF_CONFIG_DIR/endpoints
 BF_CHECKSUM_PROGRESS_MIN_SIZE=10485760 # 10 MB
 
+OPT_ALL=0
 OPT_CONTENT_TYPE=
 OPT_ENDPOINT=default
 OPT_FORCE=0
@@ -42,6 +43,7 @@ DESCRIPTION
 
 OPTIONS
 
+    -a      All-mode (for `get` will fetch all objects)
     -b      Print bash completion script
     -e      Use endpoint
     -f      Force
@@ -65,17 +67,13 @@ COMMANDS
                 rm      Remove endpoint
                 show    Show endpoint settings
 
-    get     Download file (-f overwrites existing file, if present)
+    get     <container> [objects]
 
+            Download one or more files
+
+            -a Get all objects in a container
             -f Overwrite local file if exists
             -o Output to different filename, - for stdout
-
-    getall <container> [path]
-
-            Download all files from a container or path
-
-            -f Overwrite local file if exists
-            -o <path> Output directory, default is current directory
 
     ls      <container> [path]
 
@@ -260,7 +258,7 @@ function bf_version() {
 
 
 function bf_usage() {
-    echo "usage: $BF_PROG [-befhqstv] $@" >&2
+    echo "usage: $BF_PROG [-abefhqstv] $@" >&2
     exit 1
 }
 
@@ -559,12 +557,20 @@ function cmd_get() {
     shift
     local obj_names=$@
 
-    if [[ -z $container || -z $obj_names ]]; then
-        bf_usage 'get <container> <object-names>'
-    fi
-
-    if [[ -n $OPT_OUTPUT && $# -gt 1 ]]; then
-        bf_die "-o can only be used to download a single file"
+    if [[ $OPT_ALL -eq 1 ]]; then
+        if [[ -n $obj_names ]]; then
+            bf_die "-a cannot be used with specific object names"
+        fi
+        if [[ -n $OPT_OUTPUT ]]; then
+            bf_die "-o cannot be used with -a"
+        fi
+    else
+        if [[ -z $container || -z $obj_names && $OPT_ALL -ne 1 ]]; then
+            bf_usage 'get <container> [object-names]'
+        fi
+        if [[ -n $OPT_OUTPUT && $# -gt 1 ]]; then
+            bf_die "-o can only be used to download a single file"
+        fi
     fi
 
     bf_init
@@ -867,10 +873,27 @@ function cf_ls() {
 function cf_get() {
     local container=$1
     shift
-    local obj_names=$@
+    if [[ -n OPT_ALL ]]; then
+        local tmp_file=`bf_mktemp`
+        # TODO: handle pagination
+        # FIXME: clear container only clears containers right now, in the future
+        # it would be nice if it could clear pseudo-hierarchical folders as well
+        cf_ls "$container" "" $tmp_file
+        local obj_names=`cat $tmp_file`
+    else
+        local obj_names=$@
+    fi
+
+    # NOTE: tr -d is needed for Mac OS X, since wc -w has leading spaces
+    # in output
+    local total_objects=`echo $obj_names | wc -w | tr -d ' '`
+    local idx=1
 
     local obj_name=
     for obj_name in $obj_names; do
+        bf_log "Getting $idx/$total_objects objects: $obj_name"
+        let idx++
+
         if [[ -n $OPT_OUTPUT ]]; then
             local filename=$OPT_OUTPUT
         else
@@ -924,6 +947,9 @@ function cf_get() {
             bf_die "Failed checksum validation."
         fi
     done
+    if [[ -n OPT_ALL ]]; then
+        rm $tmp_file
+    fi
 }
 
 
@@ -1294,8 +1320,9 @@ function cf_load_endpoint_config_interactive() {
 #############################################################################
 
 
-while getopts 'be:fhi:o:qt:v' opt; do
+while getopts 'abe:fhi:o:qt:v' opt; do
     case $opt in
+        a) OPT_ALL=1;;
         b) bf_bash_completion;;
         e) OPT_ENDPOINT=$OPTARG;;
         f) OPT_FORCE=1;;
