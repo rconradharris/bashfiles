@@ -504,7 +504,7 @@ function cmd_cp() {
 }
 
 
-function _default_endpoint() {
+function _cmd_default_endpoint() {
     if [[ -e $BF_ENDPOINTS_DIR/default ]]; then
         basename `readlink $BF_ENDPOINTS_DIR/default`
     else
@@ -541,7 +541,7 @@ function cmd_endpoint_add() {
 function cmd_endpoint_default() {
     local endpoint=$1
     if [[ -z $endpoint ]]; then
-        local default=`_default_endpoint`
+        local default=`_cmd_default_endpoint`
         if [[ -n $default ]]; then
             echo $default
         else
@@ -560,7 +560,7 @@ function cmd_endpoint_default() {
 
 
 function cmd_endpoint_ls() {
-    local default=`_default_endpoint`
+    local default=`_cmd_default_endpoint`
     for endpoint in `ls $BF_ENDPOINTS_DIR`; do
         if [[ -n $endpoint && $endpoint == $default ]]; then
             echo $endpoint [default]
@@ -583,7 +583,7 @@ function cmd_endpoint_rm() {
         bf_die "endpoint '$endpoint' doesn't exist"
     fi
 
-    local default=`_default_endpoint`
+    local default=`_cmd_default_endpoint`
     if [[ -n $default && $endpoint == $default ]]; then
         rm $BF_ENDPOINTS_DIR/default
     fi

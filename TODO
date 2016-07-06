@@ -1,3 +1,16 @@
+- If Content-Type == application/directory, then download all objects under
+  that directory instead of downloading empty file
+
+
+
+    cf_get_object <container> <object>
+
+
+
+
+
+- Allow get to work with folders
+
 - Make rmdir handle paths in addition to containers
 
 - Add colorization to output
