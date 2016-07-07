@@ -2,12 +2,29 @@
   that directory instead of downloading empty file
 
 
+    cf_walk
+        As a directory is encountered, a local copy is created
+        We change to that directory (pushd)
+        We download the object
+        We pop the directory
+
 
     cf_get_object <container> <object>
 
 
 
+    get <container>
+        will get all objects in a container
+    get [folder]
+        will get all objects under a folder
+    get [object]
+        will get a particular object
 
+
+
+
+
+- BUG: urlencode all container and object name accesses
 
 - Allow get to work with folders
 
