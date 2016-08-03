@@ -2,7 +2,7 @@
 # bashfiles - Manage CloudFiles via the command-line
 
 BF_VERSION=0.2
-BF_PROG=`basename $0`
+BF_PROG=bashfiles
 BF_DEFAULT_CONTENT_TYPE=application/octet-stream
 BF_CONFIG_DIR=~/.$BF_PROG
 BF_ENDPOINTS_DIR=$BF_CONFIG_DIR/endpoints
