@@ -1,7 +1,7 @@
 #!/bin/bash
 # bashfiles - Manage CloudFiles via the command-line
 
-BF_VERSION=0.2
+BF_VERSION=0.3
 BF_PROG=bashfiles
 BF_DEFAULT_CONTENT_TYPE=application/octet-stream
 BF_CONFIG_DIR=~/.$BF_PROG
@@ -822,6 +822,15 @@ function cf_curl() {
 }
 
 
+# Returns http_code in the CF_CURL_RETURN_CODE global
+function cf_curl_return_code {
+    local tmp_file=`bf_mktemp`
+    cf_curl "$@" --write-out '%{http_code}' > $tmp_file
+    CF_CURL_RETURN_CODE=`cat $tmp_file`
+    rm $tmp_file
+}
+
+
 function cf_handle_snet() {
     if [[ $CF_SERVICENET -eq 1 ]]; then
         CF_STORAGE_URL=${CF_STORAGE_URL/https:\/\//https://snet-}
@@ -841,13 +850,16 @@ function cf_auth() {
         CF_AUTH_URL=$CF_DEFAULT_AUTH_URL_US
     fi
 
-    local code=$(
-        cf_curl ${CF_AUTH_URL} --silent --write-out '%{http_code}' \
-                               --dump-header $tmp_headers \
-                               --header "X-Auth-Key: $CF_API_KEY" \
-                               --header "X-Auth-User: $CF_USER")
+    cf_curl_return_code ${CF_AUTH_URL} --silent \
+                                       --dump-header $tmp_headers \
+                                       --header "X-Auth-Key: $CF_API_KEY" \
+                                       --header "X-Auth-User: $CF_USER"
 
-    cf_check_ok $code
+    if [[ $CF_CURL_RETURN_CODE = 000 ]]; then
+        bf_die "Unable to authenticate to CloudFiles, possible SSL cert error"
+    fi
+
+    cf_check_ok $CF_CURL_RETURN_CODE
 
     CF_AUTH_TOKEN=$(cat $tmp_headers | grep ^X-Auth-Token \
                                      | sed 's/.*: //' \
@@ -876,15 +888,19 @@ function cf_request() {
 }
 
 
+# Code is returned in CF_CURL_RETURN_CODE global
 function cf_request_return_code() {
-    local code=`cf_request "$@" --write-out '%{http_code}'`
-    echo $code
+    local url=$1
+    shift
+
+    cf_auth
+    cf_curl_return_code "$CF_STORAGE_URL/$url" --header "X-Auth-Token: $CF_AUTH_TOKEN" "$@"
 }
 
 
 function cf_request_check_ok() {
-    local code=`cf_request_return_code "$@"`
-    cf_check_ok $code
+    cf_request_return_code "$@"
+    cf_check_ok $CF_CURL_RETURN_CODE
 }
 
 
@@ -1314,16 +1330,15 @@ function cf_object_exists() {
     local container=$1
     local obj_name=$2
 
-    local code=$(cf_request_return_code $container/$obj_name --silent \
-                                        --output /dev/null --head)
+    cf_request_return_code $container/$obj_name --silent --output /dev/null --head
 
-    if [[ $code -eq 204 ]]; then
+    if [[ $CF_CURL_RETURN_CODE -eq 204 ]]; then
         return 0
-    elif [[ $code -eq 200 ]]; then
+    elif [[ $CF_CURL_RETURN_CODE -eq 200 ]]; then
         # This appears to be a bug in CloudFiles, 200 should not be returned
         # when entity body is absent
         return 0
-    elif [[ $code -eq 404 ]]; then
+    elif [[ $CF_CURL_RETURN_CODE -eq 404 ]]; then
         return 1
     else
         bf_die "Invalid error code $code"
@@ -1338,15 +1353,14 @@ function cf_assert_objects_missing() {
 
     local obj_name=
     for obj_name in $obj_names; do
-        local code=$(cf_request_return_code $container/$obj_name --silent \
-                                            --output /dev/null --head)
+        cf_request_return_code $container/$obj_name --silent --output /dev/null --head
 
-        if [[ $code -eq 200 || $code -eq 204 ]]; then
+        if [[ $CF_CURL_RETURN_CODE -eq 200 || $CF_CURL_RETURN_CODE -eq 204 ]]; then
             # The fact that CloudFiles returns a 200 here even though there is
             # no entity body is a bug per the HTTP spec, should be 204
             # instead.
             bf_die "Object '$obj_name' already exists, use -f to overwrite"
-        elif [[ $code -eq 404 ]]; then
+        elif [[ $CF_CURL_RETURN_CODE -eq 404 ]]; then
             continue
         else
             bf_die "Invalid error code $code"

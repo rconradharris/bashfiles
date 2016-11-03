@@ -1,3 +1,5 @@
+0.3
+    - BUG: Better handling of SSL errors during auth
 0.2
     - FEATURE: added `endpoint default` command
     - FEATURE: `get` now takes a `-d` option to download files into a
