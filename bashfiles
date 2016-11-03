@@ -547,6 +547,7 @@ function cmd_endpoint_default() {
         else
             bf_die 'no default endpoint set'
         fi
+        exit 0
     fi
     if [[ ! -e $BF_ENDPOINTS_DIR/$endpoint ]]; then
         bf_die "endpoint '$endpoint' doesn't exist"
