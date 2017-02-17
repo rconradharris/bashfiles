@@ -58,6 +58,28 @@ OPTIONS
 
 COMMANDS
 
+    cdn     Manage CDN
+
+                disable <region> <container>
+
+                        Disable the CDN for a container
+
+                enable <region> <container>
+
+                        Enable the CDN for a container
+
+                ls <region>
+
+                        List CDN enabled containers in a region
+
+                regions
+
+                        List available CF CDN regions
+
+                stat <region> <container>
+
+                        Show CDN information for container
+
     cp      Server-side object copy
 
             -f Overwrite destination object if exists
@@ -174,7 +196,7 @@ function _bf_completer() {
     COMPREPLY=()
 
     local OPTIONS=(-a -b -d -e -f -h -i -o -q -t -v)
-    local COMMANDS=(cp endpoint get ls mkdir mv put rm rmdir stat)
+    local COMMANDS=(cdn cp endpoint get ls mkdir mv put rm rmdir stat)
     local ENDPOINT_COMMANDS=(add default ls rm show)
 
     local cmd=
@@ -281,8 +303,8 @@ function bf_usage() {
 
 
 function bf_general_usage() {
-    bf_usage "<cp|endpoint|get|ls|mkdir|mv|put|rm|rmdir|stat> [container]" \
-             "[object-name]"
+    bf_usage "<cdn|cp|endpoint|get|ls|mkdir|mv|put|rm|rmdir|stat>" \
+             " [container] [object-name]"
 }
 
 
@@ -479,6 +501,91 @@ function bf_init() {
 #                               Commands                                    #
 #                                                                           #
 #############################################################################
+
+
+function cmd_cdn_disable() {
+    local region=$1
+    local container=$2
+
+    if [[ -z $region ]] || [[ -z $container ]]; then
+        bf_usage 'cdn disable <region> <container>'
+    fi
+
+    bf_init
+
+    cf_cdn_disable $region $container
+}
+
+
+function cmd_cdn_enable() {
+    local region=$1
+    local container=$2
+
+    if [[ -z $region ]] || [[ -z $container ]]; then
+        bf_usage 'cdn enable <region> <container>'
+    fi
+
+    bf_init
+
+    cf_cdn_enable $region $container
+}
+
+
+function cmd_cdn_ls() {
+    local region=$1
+    local tmp_file=`bf_mktemp`
+
+    if [[ -z $region ]]; then
+        bf_usage 'cdn ls <region>'
+    fi
+
+    bf_init
+
+    cf_cdn_ls $region "$tmp_file"
+    cat $tmp_file
+    rm $tmp_file
+}
+
+
+function cmd_cdn_regions() {
+    echo dfw - Dallas/Ft. Worth
+    echo ord - Chicago
+    echo lon - London
+    echo syd - Sydney
+    echo iad - Northern Virginia
+    echo hkg - Hong King
+}
+
+
+function cmd_cdn_stat() {
+    local region=$1
+    local container=$2
+    local tmp_file=`bf_mktemp`
+
+    if [[ -z $region ]] || [[ -z $container ]]; then
+        bf_usage 'cdn stat <region> <container>'
+    fi
+
+    bf_init
+
+    cf_cdn_stat $region $container "$tmp_file"
+    cat $tmp_file
+    rm $tmp_file
+}
+
+
+function cmd_cdn() {
+    local subcommand=$1
+    shift
+    case $subcommand in
+        disable) cmd_cdn_disable  $@;;
+        enable)  cmd_cdn_enable   $@;;
+        ls)      cmd_cdn_ls       $@;;
+        regions) cmd_cdn_regions  $@;;
+        stat)    cmd_cdn_stat     $@;;
+        *)       bf_usage 'cdn [disable|enable|ls|regions|stat]';;
+    esac
+}
 
 
 function cmd_cp() {
@@ -789,7 +896,7 @@ function cmd_stat() {
 
 #############################################################################
 #                                                                           #
-#                               CloudFiles                                  #
+#                          CloudFiles Storage                               #
 #                                                                           #
 #############################################################################
 
@@ -832,14 +939,6 @@ function cf_curl_return_code {
 }
 
 
-function cf_handle_snet() {
-    if [[ $CF_SERVICENET -eq 1 ]]; then
-        CF_STORAGE_URL=${CF_STORAGE_URL/https:\/\//https://snet-}
-        CF_STORAGE_URL=${CF_STORAGE_URL/http:\/\//http://snet-}
-    fi
-}
-
-
 function cf_auth() {
     if [[ -n $CF_AUTH_TOKEN ]]; then
         return
@@ -874,7 +973,12 @@ function cf_auth() {
         bf_die "Unable to authenticate to CloudFiles"
     fi
 
-    cf_handle_snet
+    # Handle servicenet
+    if [[ $CF_SERVICENET -eq 1 ]]; then
+        CF_STORAGE_URL=${CF_STORAGE_URL/https:\/\//https://snet-}
+        CF_STORAGE_URL=${CF_STORAGE_URL/http:\/\//http://snet-}
+    fi
+
     rm $tmp_headers
 }
 
@@ -884,7 +988,8 @@ function cf_request() {
     shift
 
     cf_auth
-    cf_curl "$CF_STORAGE_URL/$url" --header "X-Auth-Token: $CF_AUTH_TOKEN" \
+    cf_curl "$CF_STORAGE_URL/$url" \
+            --header "X-Auth-Token: $CF_AUTH_TOKEN" \
             "$@"
 }
 
@@ -895,7 +1000,9 @@ function cf_request_return_code() {
     shift
 
     cf_auth
-    cf_curl_return_code "$CF_STORAGE_URL/$url" --header "X-Auth-Token: $CF_AUTH_TOKEN" "$@"
+    cf_curl_return_code "$CF_STORAGE_URL/$url" \
+                        --header "X-Auth-Token: $CF_AUTH_TOKEN" \
+                        "$@"
 }
 
 
@@ -1430,6 +1537,106 @@ function cf_load_endpoint_config_interactive() {
 
 #############################################################################
 #                                                                           #
+#                           CloudFiles CDN                                  #
+#                                                                           #
+#############################################################################
+
+CF_CDN_HOST_DFW=cdn1.clouddrive.com
+CF_CDN_HOST_ORD=cdn2.clouddrive.com
+CF_CDN_HOST_LON=cdn3.clouddrive.com
+CF_CDN_HOST_SYD=cdn4.clouddrive.com
+CF_CDN_HOST_IAD=cdn5.clouddrive.com
+CF_CDN_HOST_HKG=cdn6.clouddrive.com
+
+
+function cf_cdn_request_return_code() {
+    local region=$1
+    local url=$2
+    shift
+    shift
+
+    case $region in
+        dfw)    host=$CF_CDN_HOST_DFW;;
+        ord)    host=$CF_CDN_HOST_ORD;;
+        lon)    host=$CF_CDN_HOST_LON;;
+        syd)    host=$CF_CDN_HOST_SYD;;
+        iad)    host=$CF_CDN_HOST_IAD;;
+        hkg)    host=$CF_CDN_HOST_HKG;;
+        *)      bf_die "Unknown region: $region";;
+    esac
+
+    cf_auth
+    local cdn_url=${CF_STORAGE_URL/:\/\/storage*.com/:\/\/$host}
+
+    cf_curl_return_code "$cdn_url/$url" \
+                        --header "X-Auth-Token: $CF_AUTH_TOKEN" \
+                        "$@"
+}
+
+
+function cf_cdn_request_check_ok() {
+    cf_cdn_request_return_code "$@"
+    cf_check_ok $CF_CURL_RETURN_CODE
+}
+
+
+function cf_cdn_modify() {
+    local region=$1
+    local container=$2
+    shift
+    shift
+
+    cf_cdn_request_check_ok $region $container \
+                            --output /dev/null \
+                            --silent\
+                            --request PUT \
+                            "$@"
+}
+
+
+function cf_cdn_disable() {
+    local region=$1
+    local container=$2
+
+    cf_cdn_modify $region $container \
+                  --header "X-CDN-Enabled: False"
+}
+
+
+function cf_cdn_enable() {
+    local region=$1
+    local container=$2
+
+    cf_cdn_modify $region $container \
+                  --header "X-CDN-Enabled: True"
+}
+
+
+function cf_cdn_ls() {
+    local region=$1
+    local tmp_file=$2
+
+    cf_cdn_request_check_ok $region "" --silent --output $tmp_file
+}
+
+
+function cf_cdn_stat() {
+    local region=$1
+    local container=$2
+    local tmp_file=$3
+
+    # NOTE: if we used --request HEAD instead of --head, curl would
+    # expect Content-Length bytes to be sent as entity body which
+    # would cause a timeout since HEAD requests don't result in a body
+    cf_cdn_request_check_ok $region $container --silent \
+                            --output /dev/null --head \
+                            --dump-header $tmp_file
+}
+
+
+
+#############################################################################
+#                                                                           #
 #                                    Main                                   #
 #                                                                           #
 #############################################################################
@@ -1455,6 +1662,7 @@ shift $(($OPTIND - 1))
 cmd=$1
 shift
 case $cmd in
+    cdn)        cmd_cdn         $@;;
     cp)         cmd_cp          $@;;
     endpoint)   cmd_endpoint    $@;;
     ls)         cmd_ls          $@;;
