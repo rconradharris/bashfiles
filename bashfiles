@@ -16,6 +16,7 @@ OPT_FORCE=0
 OPT_INPUT=
 OPT_OUTPUT=
 OPT_QUIET=0
+OPT_EXPIRATION=0
 
 CONST_ZERO_MD5=d41d8cd98f00b204e9800998ecf8427e
 
@@ -55,6 +56,7 @@ OPTIONS
     -q      Quiet mode
     -t      Set Content-Type for upload
     -v      Print version
+    -x      Object expiration in seconds
 
 COMMANDS
 
@@ -133,6 +135,7 @@ COMMANDS
             -f Overwrite remote object if exists
             -i Input from different filename, - for stdin
             -t Set Content-Type for upload
+            -x Delete object after this number of seconds
 
     rm      Remove object
 
@@ -195,7 +198,7 @@ function _bf_match() {
 function _bf_completer() {
     COMPREPLY=()
 
-    local OPTIONS=(-a -b -d -e -f -h -i -o -q -t -v)
+    local OPTIONS=(-a -b -d -e -f -h -i -o -q -t -v -x)
     local COMMANDS=(cdn cp endpoint get ls mkdir mv put rm rmdir stat)
     local ENDPOINT_COMMANDS=(add default ls rm show)
 
@@ -1034,8 +1037,16 @@ function cf_request_put_object() {
     container_name=`bf_urlencode $container_name`
     obj_name=`bf_urlencode $obj_name`
 
+    local exp=()
+    if [[ $OPT_EXPIRATION -gt 0 ]]; then
+        exp[0]=--header
+        exp[1]="X-Delete-After: $OPT_EXPIRATION"
+    fi
+
     cf_request_smart_silent $container/$obj_name --request PUT \
-                            --header "Content-Type: $content_type" "$@" 
+                            --header "Content-Type: $content_type" \
+                            "${exp[@]}" \
+                            "$@"
 }
 
 
@@ -1642,7 +1653,7 @@ function cf_cdn_stat() {
 #############################################################################
 
 
-while getopts 'abd:e:fhi:o:qt:v' opt; do
+while getopts 'abd:e:fhi:o:qt:vx:' opt; do
     case $opt in
         a) OPT_ALL=1;;
         b) bf_bash_completion;;
@@ -1655,6 +1666,7 @@ while getopts 'abd:e:fhi:o:qt:v' opt; do
         q) OPT_QUIET=1;;
         t) OPT_CONTENT_TYPE=$OPTARG;;
         v) bf_version;;
+        x) OPT_EXPIRATION=$OPTARG;;
         *) bf_general_usage;;
     esac
 done
