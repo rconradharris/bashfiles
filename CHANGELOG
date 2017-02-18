@@ -1,3 +1,7 @@
+0.4
+    - FEATURE: added `cdn` management commands
+    - FEATURE: added `-x` option to `put`
+    - FEATURE: added `tmplink` command
 0.3
     - BUGFIX: Better handling of SSL errors during auth
     - BUGFIX: Fix issue when displaying endpoint defaults
