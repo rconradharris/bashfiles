@@ -7,6 +7,7 @@ BF_DEFAULT_CONTENT_TYPE=application/octet-stream
 BF_CONFIG_DIR=~/.$BF_PROG
 BF_ENDPOINTS_DIR=$BF_CONFIG_DIR/endpoints
 BF_CHECKSUM_PROGRESS_MIN_SIZE=10485760 # 10 MB
+BF_TMPLINK_SELF_DESTRUCT=3600 # secs
 
 OPT_ALL=0
 OPT_CONTENT_TYPE=
@@ -145,6 +146,11 @@ COMMANDS
 
     stat    Account, container, or object information
 
+    tmplink <container> <object>
+
+            Upload a file and return a CDN link to it. The file will self
+            destruct in one hour.
+
 SETTINGS
 
     CF_USER         CloudFiles username
@@ -199,7 +205,7 @@ function _bf_completer() {
     COMPREPLY=()
 
     local OPTIONS=(-a -b -d -e -f -h -i -o -q -t -v -x)
-    local COMMANDS=(cdn cp endpoint get ls mkdir mv put rm rmdir stat)
+    local COMMANDS=(cdn cp endpoint get ls mkdir mv put rm rmdir stat tmplink)
     local ENDPOINT_COMMANDS=(add default ls rm show)
 
     local cmd=
@@ -306,7 +312,7 @@ function bf_usage() {
 
 
 function bf_general_usage() {
-    bf_usage "<cdn|cp|endpoint|get|ls|mkdir|mv|put|rm|rmdir|stat>" \
+    bf_usage "<cdn|cp|endpoint|get|ls|mkdir|mv|put|rm|rmdir|stat|tmplink>" \
              " [container] [object-name]"
 }
 
@@ -536,7 +542,6 @@ function cmd_cdn_enable() {
 
 function cmd_cdn_ls() {
     local region=$1
-    local tmp_file=`bf_mktemp`
 
     if [[ -z $region ]]; then
         bf_usage 'cdn ls <region>'
@@ -544,6 +549,7 @@ function cmd_cdn_ls() {
 
     bf_init
 
+    local tmp_file=`bf_mktemp`
     cf_cdn_ls $region "$tmp_file"
     cat $tmp_file
     rm $tmp_file
@@ -894,6 +900,40 @@ function cmd_stat() {
     bf_init
 
     cf_stat $container "$obj_names"
+}
+
+
+function cmd_tmplink() {
+    local container=$1
+    local obj_name=$2
+
+    if [[ -z $container || -z $obj_name ]]; then
+        bf_usage 'tmplink <container> <object-name>'
+    fi
+
+    bf_init
+
+    if [[ $OPT_FORCE -ne 1 ]]; then
+        cf_assert_objects_missing $container $obj_name
+    fi
+
+    local region=`cf_cdn_find_region_for_container $container`
+    if [[ -z $region ]]; then
+        bf_die "could not find CDN region for container, have you enabled CDN?"
+    fi
+
+    local orig_expiration=$OPT_EXPIRATION
+    OPT_EXPIRATION=$BF_TMPLINK_SELF_DESTRUCT
+    cf_put $container $obj_name
+    OPT_EXPIRATION=$orig_expiration
+
+    # Get (and print) CDN URL for object
+    local tmp_file=`bf_mktemp`
+    cf_cdn_stat $region $container "$tmp_file"
+    grep -i X-Cdn-Ssl-Uri < $tmp_file | cut -d' ' -f2 \
+                                      | tr -d '\r' \
+                                      | sed -e "s/$/\/$obj_name/"
+    rm $tmp_file
 }
 
 
@@ -1591,6 +1631,27 @@ function cf_cdn_request_check_ok() {
 }
 
 
+function cf_cdn_find_region_for_container() {
+    local container=$1
+
+    local region=
+    local tmp_file=`bf_mktemp`
+
+    for region in iad dfw ord lon syd hkg; do
+        cf_cdn_ls $region "$tmp_file"
+        grep $container < $tmp_file > /dev/null 2> /dev/null
+        local ret=$?
+        if [[ $ret -eq 0 ]]; then
+            break
+        fi
+    done
+
+    echo $region
+
+    rm $tmp_file
+}
+
+
 function cf_cdn_modify() {
     local region=$1
     local container=$2
@@ -1685,5 +1746,6 @@ case $cmd in
     rm)         cmd_rm          $@;;
     rmdir)      cmd_rmdir       $@;;
     stat)       cmd_stat        $@;;
+    tmplink)    cmd_tmplink     $@;;
     *)      bf_general_usage;;
 esac
