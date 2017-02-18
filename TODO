@@ -11,8 +11,6 @@
 
     cf_get_object <container> <object>
 
-
-
     get <container>
         will get all objects in a container
     get [folder]
@@ -20,19 +18,11 @@
     get [object]
         will get a particular object
 
-
-
-
-
 - BUG: urlencode all container and object name accesses
 
 - Allow get to work with folders
 
 - Make rmdir handle paths in addition to containers
-
-- Add colorization to output
-    - error should be red
-    - warning should be yellow
 
 - Add sync command that syncs directory into cloudfiles under a container or a
   path
@@ -48,16 +38,6 @@
 - Add `ls -S` which will sort files by size
 - Add `ls -r` which will reverse sort order
 
-- Renew bashfiles.org/get (get latest)
-
-INI file parsing:
-
-- Reading an INI file
-    - List sections
-    - Read data from section
-
-- Writing an INI file
-
 BUGS
 ====
 
@@ -72,21 +52,10 @@ FEATURES
     - bashfiles help (general help)
     - bashfiles help get (get specific help)
 
-- Add CHANGELOG
-
-- INI style config
-    [default]
-    CF_USER=foo
-
-    [endpoint2]
-    CF_USER=foo
-
 - Ability to bind an endpoint to a container
 
 - CloudFiles features:
-    - Make container public
     - Switch to SLO large-files?
-    - Add Cloudfiles v2 Auth
     - rmdir: Handle pagination for clear_container
     - Pagination to ls as well
         - limit, marker params
@@ -96,32 +65,7 @@ FEATURES
 
 - Other backends:
     - S3
+    - iCloudDrive
     - DropBox
     - GoogleDrive
     - SSH
-
-- Consider SQLite approach of building aggregate file
-    - Use Makefile
-
-- Quick Delete by forking processes to background?
-
-- Even more portability: Switch to sh instead of bash. Is there a system that
-  will have curl but not bash?!
-
-- Revised directory structure
-/
-    MakeFile
-    src/
-        bashfiles.sh
-        lib/
-            utils.sh : General purpose utilities
-            platform.sh Cross-platform wrappers
-        backends/
-            cloudfiles.sh
-    tests/
-
-
-TEST
-====
-
-- Test against Linux

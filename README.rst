@@ -2,7 +2,13 @@
 bashfiles
 =========
 
-CloudFiles with bash+curl
+``bashfiles`` is a command-line client for interacting with CloudFiles. Its
+main goals are to be a single, easy to fetch file that only has minimal
+dependencies, namely ``bash`` and ``curl``.
+
+Bashfiles works particularly well on machines with limited userspace tools
+(for example the Dom0 of a Xen host). However, it's featureful enough to be
+useful anywhere.
 
 
 Fetch Script
@@ -26,19 +32,12 @@ Wget::
 Examples
 ========
 
-Download::
 
-    CF_USER=foo CF_API_KEY=bar bashfiles get my-container object1
+Download an object from CloudFiles::
 
-Download multiple objects::
+    bashfiles get my-container object1
 
-    bashfiles get my-container object1 object2
-
-Download to stdout::
-
-    bashfiles -o - get my-container my-object > output.data
-
-Upload from stdin::
+Upload an object to CloudFiles from stdin::
 
     bashfiles -i - put my-container my-object < input.data
 
@@ -49,6 +48,11 @@ Move object to different container::
 Remove container with objects in it::
 
     bashfiles -f rmdir my-container
+
+Create temporary links (files available on the CDN that self-destruct after
+one hour)::
+
+    bashfiles tmplink my-object
 
 
 Features
@@ -82,6 +86,8 @@ CloudFiles Specific Features
 * ServiceNET support
 
 * Checksum validation
+
+* CDN support
 
 
 Enable Bash Completion

@@ -143,7 +143,7 @@ COMMANDS
 
     stat    Account, container, or object information
 
-    tmplink <container> <object>
+    tmplink <object>
 
             Upload a file and return a CDN link to it. The file will self
             destruct in one hour.
@@ -457,52 +457,31 @@ function bf_autodetect_filetype() {
 }
 
 
-function bf_save_endpoint_config() {
-    mkdir -p `dirname $BF_ENDPOINT_CONFIG`
-
-    if [[ -e $BF_ENDPOINT_CONFIG ]]; then
-        bf_warn "Cannot save, endpoint config '$BF_ENDPOINT_CONFIG'" \
-                "already exists"
-        return 1
-    fi
-
-    touch $BF_ENDPOINT_CONFIG
-
-    cf_save_endpoint_config
-}
-
-
-function bf_load_endpoint_config_file() {
-    if [[ -r $BF_ENDPOINT_CONFIG ]]; then
-        source $BF_ENDPOINT_CONFIG
-    fi
-}
-
-
-function bf_load_endpoint_config_interactive() {
-    cf_load_endpoint_config_interactive
-
-    if [[ $? -ne 0 ]]; then
-        return
-    fi
-
+function bf_save_endpoint_config_interactive() {
     if [[ `bf_ask_yes_no n 'Save settings'` -eq 1 ]]; then
-        bf_save_endpoint_config
+        mkdir -p `dirname $BF_ENDPOINT_CONFIG`
+        touch $BF_ENDPOINT_CONFIG
+        cf_save_endpoint_config
     fi
-}
-
-
-function bf_load_endpoint_config() {
-    BF_ENDPOINT_CONFIG=$BF_ENDPOINTS_DIR/$OPT_ENDPOINT
-    BF_COMPLETION_DIR=$BF_CONFIG_DIR/completion/$OPT_ENDPOINT
-
-    bf_load_endpoint_config_file
-    bf_load_endpoint_config_interactive
 }
 
 
 function bf_init() {
-    bf_load_endpoint_config
+    BF_ENDPOINT_CONFIG=$BF_ENDPOINTS_DIR/$OPT_ENDPOINT
+    BF_COMPLETION_DIR=$BF_CONFIG_DIR/completion/$OPT_ENDPOINT
+
+    # Load from file
+    if [[ -r $BF_ENDPOINT_CONFIG ]]; then
+        source $BF_ENDPOINT_CONFIG
+    fi
+
+    # Interactive
+    cf_load_endpoint_config_interactive
+    if [[ $? -ne 0 ]]; then
+        return
+    fi
+
+    bf_save_endpoint_config_interactive
 }
 
 
@@ -646,7 +625,7 @@ function cmd_endpoint_add() {
     fi
 
     OPT_ENDPOINT=$endpoint
-    bf_load_endpoint_config
+    bf_init
 
     # If only one endpoint, make it the default
     if [[ `cmd_endpoint_ls | wc -l` -eq 1 ]]; then
@@ -905,32 +884,38 @@ function cmd_stat() {
 
 
 function cmd_tmplink() {
-    local container=$1
-    local obj_name=$2
+    local obj_name=$1
 
-    if [[ -z $container || -z $obj_name ]]; then
-        bf_usage 'tmplink <container> <object-name>'
+    if [[ -z $obj_name ]]; then
+        bf_usage 'tmplink <object-name>'
     fi
 
     bf_init
+    cf_auth
 
-    if [[ $OPT_FORCE -ne 1 ]]; then
-        cf_assert_objects_missing $container $obj_name
+    if [[ -z $CF_TMPLINK_CONTAINER ]]; then
+        bf_ask_required 'CF_TMPLINK_CONTAINER' \
+                        'CloudFiles Temporary Link (tmplink) Container:'
+        bf_save_endpoint_config_interactive
     fi
 
-    local region=`cf_cdn_find_region_for_container $container`
+    if [[ $OPT_FORCE -ne 1 ]]; then
+        cf_assert_objects_missing $CF_TMPLINK_CONTAINER $obj_name
+    fi
+
+    local region=`cf_cdn_find_region_for_container $CF_TMPLINK_CONTAINER`
     if [[ -z $region ]]; then
         bf_die "could not find CDN region for container, have you enabled CDN?"
     fi
 
     local orig_expiration=$OPT_EXPIRATION
     OPT_EXPIRATION=$BF_TMPLINK_SELF_DESTRUCT
-    cf_put $container $obj_name
+    cf_put $CF_TMPLINK_CONTAINER $obj_name
     OPT_EXPIRATION=$orig_expiration
 
     # Get (and print) CDN URL for object
     local tmp_file=`bf_mktemp`
-    cf_cdn_stat $region $container "$tmp_file"
+    cf_cdn_stat $region $CF_TMPLINK_CONTAINER "$tmp_file"
     grep -i X-Cdn-Ssl-Uri < $tmp_file | cut -d' ' -f2 \
                                       | tr -d '\r' \
                                       | sed -e "s/$/\/$obj_name/"
@@ -1530,6 +1515,7 @@ CF_API_KEY=$CF_API_KEY
 CF_AUTH_URL=$CF_AUTH_URL
 CF_SERVICENET=$CF_SERVICENET
 CF_INSECURE=$CF_INSECURE
+CF_TMPLINK_CONTAINER=$CF_TMPLINK_CONTAINER
 EOF
 }
 
