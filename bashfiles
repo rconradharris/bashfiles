@@ -19,9 +19,6 @@ OPT_OUTPUT=
 OPT_QUIET=0
 OPT_EXPIRATION=0
 
-CONST_ZERO_MD5=d41d8cd98f00b204e9800998ecf8427e
-
-
 #############################################################################
 #                                                                           #
 #                               Bashfiles                                   #
@@ -948,6 +945,7 @@ function cmd_tmplink() {
 #############################################################################
 
 
+CF_CONST_ZERO_MD5=d41d8cd98f00b204e9800998ecf8427e
 CF_DEFAULT_AUTH_URL_US=https://auth.api.rackspacecloud.com/v1.0
 CF_DEFAULT_AUTH_URL_UK=https://lon.auth.api.rackspacecloud.com/v1.0
 CF_DEFAULT_SEGMENT_SIZE=5368709120
@@ -1164,7 +1162,8 @@ function cf_get() {
         fi
         obj_name=`bf_urlencode $obj_name`
         if [[ $filename == - ]]; then
-            cf_get_stream $container $obj_name
+            # Output a stream
+            cf_request $container/$obj_name --silent
         else
             cf_get_file $container $obj_name $filename
         fi
@@ -1176,14 +1175,6 @@ function cf_get() {
     if [[ $OPT_ALL -eq 1 ]]; then
         rm $tmp_file
     fi
-}
-
-
-function cf_get_stream() {
-    local container=$1
-    local obj_name=$2
-
-    cf_request $container/$obj_name --silent
 }
 
 
