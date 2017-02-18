@@ -151,6 +151,10 @@ COMMANDS
             Upload a file and return a CDN link to it. The file will self
             destruct in one hour.
 
+            -f Overwrite remote object if exists
+            -i Input from different filename, - for stdin
+            -t Set Content-Type for upload
+
 SETTINGS
 
     CF_USER         CloudFiles username
